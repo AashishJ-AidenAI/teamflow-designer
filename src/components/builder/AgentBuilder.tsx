@@ -14,6 +14,7 @@ import {
   NodeTypes,
   OnConnect,
   NodeMouseHandler,
+  ReactFlowProvider,
   useReactFlow,
   Panel,
 } from "@xyflow/react";
@@ -33,7 +34,8 @@ const nodeTypes: NodeTypes = {
 
 interface AgentBuilderProps {}
 
-const AgentBuilder: React.FC<AgentBuilderProps> = () => {
+// Create a separate component for the flow content
+const FlowContent = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const connectingNodeId = useRef<string | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -88,12 +90,6 @@ const AgentBuilder: React.FC<AgentBuilderProps> = () => {
     },
     [reactFlowInstance, setNodes]
   );
-  
-  const onDragStart = (event: React.DragEvent, nodeType: string, data: any) => {
-    event.dataTransfer.setData("application/reactflow/type", nodeType);
-    event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
-    event.dataTransfer.effectAllowed = "move";
-  };
   
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
     // Handle node click (for editing, etc.)
@@ -169,6 +165,22 @@ const AgentBuilder: React.FC<AgentBuilderProps> = () => {
         </ReactFlow>
       </div>
     </div>
+  );
+  
+  // Helper function for drag start
+  function onDragStart(event: React.DragEvent, nodeType: string, data: any) {
+    event.dataTransfer.setData("application/reactflow/type", nodeType);
+    event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
+    event.dataTransfer.effectAllowed = "move";
+  }
+};
+
+// Main component wrapped with ReactFlowProvider
+const AgentBuilder: React.FC<AgentBuilderProps> = () => {
+  return (
+    <ReactFlowProvider>
+      <FlowContent />
+    </ReactFlowProvider>
   );
 };
 

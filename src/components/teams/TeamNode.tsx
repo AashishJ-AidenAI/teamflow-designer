@@ -13,7 +13,7 @@ export interface TeamNodeData {
   agents: string[];
 }
 
-// Use generics properly with NodeProps
+// Use the correct NodeProps interface from React Flow
 const TeamNode = ({ 
   id, 
   data, 
@@ -23,15 +23,12 @@ const TeamNode = ({
   const onNodeClick = useCallback(() => {
     console.log("Team node clicked:", id);
   }, [id]);
-
-  // Safe typing - ensure data is of the expected type
-  const typedData = data as TeamNodeData;
   
   const StrategyIcon = {
     parallel: Zap,
     selection: List,
     sequential: GitBranch
-  }[typedData.strategy];
+  }[data.strategy];
 
   return (
     <div 
@@ -41,7 +38,7 @@ const TeamNode = ({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4" />
-          <span className="font-medium">{typedData.label}</span>
+          <span className="font-medium">{data.label}</span>
         </div>
         <div className="flex gap-1">
           <button className="p-1 hover:bg-white/20 rounded-sm transition-colors">
@@ -57,14 +54,14 @@ const TeamNode = ({
         <div className="flex items-center gap-1.5">
           <StrategyIcon className="h-3.5 w-3.5" />
           <span className="bg-white/20 px-1.5 py-0.5 rounded-sm capitalize">
-            {typedData.strategy} Execution
+            {data.strategy} Execution
           </span>
         </div>
         
         <div className="mt-2">
-          <span className="text-white/80">Agents: {typedData.agents.length}</span>
+          <span className="text-white/80">Agents: {data.agents.length}</span>
           <div className="flex flex-wrap gap-1 mt-1">
-            {typedData.agents.slice(0, 3).map((agent, index) => (
+            {data.agents.slice(0, 3).map((agent, index) => (
               <span 
                 key={index} 
                 className="bg-white/20 px-1.5 py-0.5 rounded-sm text-[10px]"
@@ -72,9 +69,9 @@ const TeamNode = ({
                 {agent}
               </span>
             ))}
-            {typedData.agents.length > 3 && (
+            {data.agents.length > 3 && (
               <span className="bg-white/20 px-1.5 py-0.5 rounded-sm text-[10px]">
-                +{typedData.agents.length - 3} more
+                +{data.agents.length - 3} more
               </span>
             )}
           </div>
