@@ -216,10 +216,12 @@
   @apply animate-scale-up;
 }
 
+/* Fix for circular dependency - define the animation directly instead of applying itself */
 .animate-float {
-  @apply animate-float;
+  animation: float 3s ease-in-out infinite;
 }
 
+/* Fix for circular dependency - define the animation directly instead of applying itself */
 .animate-pulse-subtle {
-  @apply animate-pulse-subtle;
+  animation: pulse-subtle 2s ease-in-out infinite;
 }
