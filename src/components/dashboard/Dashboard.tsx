@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Tabs, 
@@ -25,6 +24,7 @@ import {
 import AgentCard from "./AgentCard";
 import TeamCard from "./TeamCard";
 import Metrics from "./Metrics";
+import { ExecutionStrategy } from "../teams/TeamNode";
 
 // Sample data
 const agentsData = [
@@ -88,7 +88,7 @@ const teamsData = [
   {
     id: "t1",
     name: "Research Team",
-    strategy: "parallel",
+    strategy: "parallel" as ExecutionStrategy,
     agents: ["Text Summarizer", "Data Analyzer", "Research Assistant"],
     active: true,
     clientAssigned: ["Client A", "Client B"],
@@ -96,7 +96,7 @@ const teamsData = [
   {
     id: "t2",
     name: "Content Team",
-    strategy: "selection",
+    strategy: "selection" as ExecutionStrategy,
     agents: ["Content Writer", "Text Summarizer"],
     active: true,
     clientAssigned: ["Client C"],
@@ -104,7 +104,7 @@ const teamsData = [
   {
     id: "t3",
     name: "Dev Team",
-    strategy: "sequential",
+    strategy: "sequential" as ExecutionStrategy,
     agents: ["Code Generator", "Data Analyzer"],
     active: false,
     clientAssigned: [],
@@ -112,7 +112,7 @@ const teamsData = [
   {
     id: "t4",
     name: "Full Analysis Team",
-    strategy: "sequential",
+    strategy: "sequential" as ExecutionStrategy,
     agents: ["Data Analyzer", "Content Writer", "Image Analyzer"],
     active: true,
     clientAssigned: ["Client A", "Client D"],
@@ -123,14 +123,12 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("agents");
   
-  // Filter agents based on search term
   const filteredAgents = agentsData.filter(agent => 
     agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.llm.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.tools.some(tool => tool.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
-  // Filter teams based on search term
   const filteredTeams = teamsData.filter(team => 
     team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     team.strategy.toLowerCase().includes(searchTerm.toLowerCase()) ||

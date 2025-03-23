@@ -3,15 +3,18 @@ import { useCallback } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import { Users, Cog, X, GitBranch, Zap, List } from "lucide-react";
 
-type ExecutionStrategy = "parallel" | "selection" | "sequential";
+// Define the execution strategy type
+export type ExecutionStrategy = "parallel" | "selection" | "sequential";
 
-interface TeamData {
+// Define the data structure for the team node
+interface TeamNodeData {
   label: string;
   strategy: ExecutionStrategy;
   agents: string[];
 }
 
-const TeamNode: React.FC<NodeProps<TeamData>> = ({ 
+// The NodeProps from @xyflow/react already includes id, selected, etc.
+const TeamNode: React.FC<NodeProps<TeamNodeData>> = ({ 
   id, 
   data, 
   selected, 

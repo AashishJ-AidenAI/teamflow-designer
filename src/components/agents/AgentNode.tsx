@@ -3,13 +3,15 @@ import { useCallback } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import { Bot, Cog, X } from "lucide-react";
 
-interface AgentData {
+// Define the data structure that will be passed to the node
+interface AgentNodeData {
   label: string;
   llm: string;
   tools: string[];
 }
 
-const AgentNode: React.FC<NodeProps<AgentData>> = ({ 
+// The NodeProps from @xyflow/react already includes id, selected, etc.
+const AgentNode: React.FC<NodeProps<AgentNodeData>> = ({ 
   id, 
   data, 
   selected, 

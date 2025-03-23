@@ -15,7 +15,8 @@ import {
   OnConnect,
   NodeMouseHandler,
   useReactFlow,
-  Panel
+  Panel,
+  getIntersectingNodes
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Save, ZoomIn, ZoomOut, Trash2 } from "lucide-react";
@@ -24,7 +25,9 @@ import { Button } from "@/components/ui/button";
 import ControlPanel from "./ControlPanel";
 import AgentNode from "../agents/AgentNode";
 import TeamNode from "../teams/TeamNode";
+import { ExecutionStrategy } from "../teams/TeamNode";
 
+// Define node types with their respective data structures
 const nodeTypes: NodeTypes = {
   agent: AgentNode,
   team: TeamNode
@@ -37,7 +40,7 @@ const AgentBuilder: React.FC<AgentBuilderProps> = () => {
   const connectingNodeId = useRef<string | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { project, getIntersectingNodes } = useReactFlow();
+  const { viewport, project } = useReactFlow();
   
   const onConnect: OnConnect = useCallback(
     (connection) => {

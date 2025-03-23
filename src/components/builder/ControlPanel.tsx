@@ -4,6 +4,7 @@ import { Bot, Users, Search, PlusCircle, ChevronDown, ChevronUp } from "lucide-r
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ExecutionStrategy } from "../teams/TeamNode";
 
 interface AgentItem {
   id: string;
@@ -16,7 +17,7 @@ interface TeamItem {
   id: string;
   type: "team";
   name: string;
-  strategy: "parallel" | "selection" | "sequential";
+  strategy: ExecutionStrategy;
 }
 
 type Item = AgentItem | TeamItem;
