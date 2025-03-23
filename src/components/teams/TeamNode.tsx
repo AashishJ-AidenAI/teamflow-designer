@@ -7,28 +7,31 @@ import { Users, Cog, X, GitBranch, Zap, List } from "lucide-react";
 export type ExecutionStrategy = "parallel" | "selection" | "sequential";
 
 // Define the data structure for the team node
-interface TeamNodeData {
+export interface TeamNodeData {
   label: string;
   strategy: ExecutionStrategy;
   agents: string[];
 }
 
-// The NodeProps from @xyflow/react already includes id, selected, etc.
-const TeamNode: React.FC<NodeProps<TeamNodeData>> = ({ 
+// Use generics properly with NodeProps
+const TeamNode = ({ 
   id, 
   data, 
   selected, 
-  isConnectable
-}) => {
+  isConnectable 
+}: NodeProps<TeamNodeData>) => {
   const onNodeClick = useCallback(() => {
     console.log("Team node clicked:", id);
   }, [id]);
 
+  // Safe typing - ensure data is of the expected type
+  const typedData = data as TeamNodeData;
+  
   const StrategyIcon = {
     parallel: Zap,
     selection: List,
     sequential: GitBranch
-  }[data.strategy];
+  }[typedData.strategy];
 
   return (
     <div 
@@ -38,7 +41,7 @@ const TeamNode: React.FC<NodeProps<TeamNodeData>> = ({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4" />
-          <span className="font-medium">{data.label}</span>
+          <span className="font-medium">{typedData.label}</span>
         </div>
         <div className="flex gap-1">
           <button className="p-1 hover:bg-white/20 rounded-sm transition-colors">
@@ -54,14 +57,14 @@ const TeamNode: React.FC<NodeProps<TeamNodeData>> = ({
         <div className="flex items-center gap-1.5">
           <StrategyIcon className="h-3.5 w-3.5" />
           <span className="bg-white/20 px-1.5 py-0.5 rounded-sm capitalize">
-            {data.strategy} Execution
+            {typedData.strategy} Execution
           </span>
         </div>
         
         <div className="mt-2">
-          <span className="text-white/80">Agents: {data.agents.length}</span>
+          <span className="text-white/80">Agents: {typedData.agents.length}</span>
           <div className="flex flex-wrap gap-1 mt-1">
-            {data.agents.slice(0, 3).map((agent, index) => (
+            {typedData.agents.slice(0, 3).map((agent, index) => (
               <span 
                 key={index} 
                 className="bg-white/20 px-1.5 py-0.5 rounded-sm text-[10px]"
@@ -69,9 +72,9 @@ const TeamNode: React.FC<NodeProps<TeamNodeData>> = ({
                 {agent}
               </span>
             ))}
-            {data.agents.length > 3 && (
+            {typedData.agents.length > 3 && (
               <span className="bg-white/20 px-1.5 py-0.5 rounded-sm text-[10px]">
-                +{data.agents.length - 3} more
+                +{typedData.agents.length - 3} more
               </span>
             )}
           </div>

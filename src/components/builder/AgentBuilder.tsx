@@ -1,5 +1,5 @@
 
-import { useCallback, useState, useRef, useMemo } from "react";
+import { useCallback, useState, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -16,16 +16,14 @@ import {
   NodeMouseHandler,
   useReactFlow,
   Panel,
-  getIntersectingNodes
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Save, ZoomIn, ZoomOut, Trash2 } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import ControlPanel from "./ControlPanel";
-import AgentNode from "../agents/AgentNode";
-import TeamNode from "../teams/TeamNode";
-import { ExecutionStrategy } from "../teams/TeamNode";
+import AgentNode, { AgentNodeData } from "../agents/AgentNode";
+import TeamNode, { TeamNodeData, ExecutionStrategy } from "../teams/TeamNode";
 
 // Define node types with their respective data structures
 const nodeTypes: NodeTypes = {
@@ -40,7 +38,7 @@ const AgentBuilder: React.FC<AgentBuilderProps> = () => {
   const connectingNodeId = useRef<string | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { viewport, project } = useReactFlow();
+  const reactFlowInstance = useReactFlow();
   
   const onConnect: OnConnect = useCallback(
     (connection) => {
@@ -72,7 +70,8 @@ const AgentBuilder: React.FC<AgentBuilderProps> = () => {
       
       if (!type || !reactFlowBounds) return;
       
-      const position = project({
+      // Get the position where the node was dropped
+      const position = reactFlowInstance.screenToFlowPosition({
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
       });
@@ -87,7 +86,7 @@ const AgentBuilder: React.FC<AgentBuilderProps> = () => {
       setNodes((nds) => nds.concat(newNode));
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added to workspace`);
     },
-    [project, setNodes]
+    [reactFlowInstance, setNodes]
   );
   
   const onDragStart = (event: React.DragEvent, nodeType: string, data: any) => {
