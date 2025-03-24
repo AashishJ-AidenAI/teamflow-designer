@@ -37,7 +37,7 @@ const TeamNode = ({
 
   return (
     <div 
-      className={`team-node transition-all duration-150 ${selected ? 'scale-[1.02]' : ''}`}
+      className={`w-64 p-3 rounded-md bg-blue-600 text-white ${selected ? 'scale-[1.02]' : ''}`}
       onClick={onNodeClick}
     >
       <div className="flex items-center justify-between mb-2">
@@ -57,7 +57,7 @@ const TeamNode = ({
       
       <div className="text-xs space-y-1">
         <div className="flex items-center gap-1.5">
-          <StrategyIcon className="h-3.5 w-3.5" />
+          {StrategyIcon && <StrategyIcon className="h-3.5 w-3.5" />}
           <span className="bg-white/20 px-1.5 py-0.5 rounded-sm capitalize">
             {data?.strategy || "parallel"} Execution
           </span>

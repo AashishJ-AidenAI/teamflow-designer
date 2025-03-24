@@ -17,6 +17,7 @@ import {
   ReactFlowProvider,
   useReactFlow,
   Panel,
+  XYPosition,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Save, Trash2 } from "lucide-react";
@@ -37,7 +38,7 @@ const FlowContent = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { project } = useReactFlow();
+  const reactFlowInstance = useReactFlow();
   
   const onConnect: OnConnect = useCallback(
     (connection) => {
@@ -63,7 +64,7 @@ const FlowContent = () => {
     (event: React.DragEvent) => {
       event.preventDefault();
       
-      if (!reactFlowWrapper.current) return;
+      if (!reactFlowWrapper.current || !reactFlowInstance) return;
       
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow/type");
@@ -75,7 +76,7 @@ const FlowContent = () => {
         const nodeData = JSON.parse(nodeDataString);
         
         // Get the position where the node was dropped
-        const position = project({
+        const position = reactFlowInstance.screenToFlowPosition({
           x: event.clientX - reactFlowBounds.left,
           y: event.clientY - reactFlowBounds.top,
         });
@@ -94,7 +95,7 @@ const FlowContent = () => {
         toast.error("Failed to add element to workspace");
       }
     },
-    [project, setNodes]
+    [reactFlowInstance, setNodes]
   );
   
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
@@ -120,9 +121,16 @@ const FlowContent = () => {
     toast.success("Selected items deleted");
   }, [setNodes, setEdges]);
 
+  // Pass handleDragStart to ControlPanel
+  const handleDragStart = useCallback((event: React.DragEvent, nodeType: string, data: any) => {
+    event.dataTransfer.setData("application/reactflow/type", nodeType);
+    event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
+    event.dataTransfer.effectAllowed = "move";
+  }, []);
+
   return (
     <div className="flex h-full">
-      <ControlPanel />
+      <ControlPanel onDragStart={handleDragStart} />
       
       <div ref={reactFlowWrapper} className="flex-1 h-full">
         <ReactFlow

@@ -28,7 +28,7 @@ const AgentNode = ({
 
   return (
     <div 
-      className={`agent-node transition-all duration-150 ${selected ? 'scale-[1.02]' : ''}`}
+      className={`w-64 p-3 rounded-md bg-primary text-primary-foreground ${selected ? 'scale-[1.02]' : ''}`}
       onClick={onNodeClick}
     >
       <div className="flex items-center justify-between mb-2">

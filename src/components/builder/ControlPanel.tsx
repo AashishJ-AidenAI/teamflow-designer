@@ -53,9 +53,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
   );
 
   const handleDragStart = (event: React.DragEvent, nodeType: string, data: any) => {
-    event.dataTransfer.setData("application/reactflow/type", nodeType);
-    event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
-    event.dataTransfer.effectAllowed = "move";
+    if (onDragStart) {
+      onDragStart(event, nodeType, data);
+    } else {
+      event.dataTransfer.setData("application/reactflow/type", nodeType);
+      event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
+      event.dataTransfer.effectAllowed = "move";
+    }
   };
 
   return (
