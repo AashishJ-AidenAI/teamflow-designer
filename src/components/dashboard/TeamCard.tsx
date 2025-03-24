@@ -15,8 +15,15 @@ interface TeamCardProps {
   agents: string[];
   active: boolean;
   clientAssigned: string[];
-  onUpdateClientList: (teamId: string, clients: string[]) => void;
-  allClients: { id: string; name: string }[];
+  onUpdateClientList?: (teamId: string, clients: string[]) => void;
+  allClients?: { id: string; name: string }[];
+}
+
+// Alternative way to receive the props as a single 'team' object
+interface TeamCardWithTeamProp {
+  team: TeamCardProps;
+  onUpdateClientList?: (teamId: string, clients: string[]) => void;
+  allClients?: { id: string; name: string }[];
 }
 
 const StrategyIcon = {
@@ -25,27 +32,45 @@ const StrategyIcon = {
   sequential: GitBranch,
 };
 
-const TeamCard = ({
-  id,
-  name,
-  strategy,
-  agents,
-  active,
-  clientAssigned,
-  onUpdateClientList,
-  allClients,
-}: TeamCardProps) => {
+// Handle both ways of receiving props
+const TeamCard = (props: TeamCardProps | TeamCardWithTeamProp) => {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   
-  const Icon = StrategyIcon[strategy];
+  // Normalize props whether they come as individual props or as a team object
+  const teamProps = 'team' in props 
+    ? props.team 
+    : props;
   
-  const clientNames = clientAssigned.map(
-    (clientId) => allClients.find((c) => c.id === clientId)?.name || "Unknown Client"
-  );
+  const { 
+    id, 
+    name, 
+    strategy, 
+    agents, 
+    active, 
+    clientAssigned = [] 
+  } = teamProps;
+  
+  const onUpdateClientList = 'team' in props 
+    ? props.onUpdateClientList 
+    : props.onUpdateClientList;
+  
+  const allClients = 'team' in props 
+    ? props.allClients || [] 
+    : props.allClients || [];
+  
+  const Icon = StrategyIcon[strategy] || GitBranch;
+  
+  const clientNames = Array.isArray(clientAssigned) 
+    ? clientAssigned.map(
+        (clientId) => allClients.find((c) => c.id === clientId)?.name || "Unknown Client"
+      )
+    : [];
   
   const handleSaveClients = (clients: string[]) => {
-    onUpdateClientList(id, clients);
-    toast.success(`Updated client list for ${name}`);
+    if (onUpdateClientList) {
+      onUpdateClientList(id, clients);
+      toast.success(`Updated client list for ${name}`);
+    }
   };
 
   return (
@@ -66,17 +91,21 @@ const TeamCard = ({
         <CardContent className="pb-2">
           <div className="space-y-2">
             <div>
-              <h4 className="text-sm font-medium mb-1">Agents ({agents.length})</h4>
+              <h4 className="text-sm font-medium mb-1">Agents ({agents ? agents.length : 0})</h4>
               <div className="flex flex-wrap gap-1">
-                {agents.map((agent, i) => (
-                  <Badge key={i} variant="outline" className="text-xs">
-                    {agent}
-                  </Badge>
-                ))}
+                {agents && agents.length > 0 ? (
+                  agents.map((agent, i) => (
+                    <Badge key={i} variant="outline" className="text-xs">
+                      {agent}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">No agents assigned</span>
+                )}
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-medium mb-1">Assigned Clients ({clientAssigned.length})</h4>
+              <h4 className="text-sm font-medium mb-1">Assigned Clients ({clientNames.length})</h4>
               <div className="flex flex-wrap gap-1">
                 {clientNames.length > 0 ? (
                   clientNames.map((client, i) => (
@@ -109,7 +138,7 @@ const TeamCard = ({
         onClose={() => setIsClientModalOpen(false)}
         onSave={handleSaveClients}
         teamName={name}
-        selectedClients={clientAssigned}
+        selectedClients={clientAssigned || []}
         allClients={allClients}
       />
     </>

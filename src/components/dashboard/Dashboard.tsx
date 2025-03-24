@@ -119,9 +119,30 @@ const teamsData = [
   },
 ];
 
+// Sample client data
+const clientsData = [
+  { id: "Client A", name: "Acme Corp" },
+  { id: "Client B", name: "Beta Industries" },
+  { id: "Client C", name: "Catalyst Group" },
+  { id: "Client D", name: "Delta Technologies" },
+  { id: "Client E", name: "Epsilon Software" },
+  { id: "Client F", name: "Foxtrot Media" },
+];
+
 const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("agents");
+  const [teams, setTeams] = useState(teamsData);
+  
+  const handleUpdateClientList = (teamId: string, clients: string[]) => {
+    setTeams(prevTeams => 
+      prevTeams.map(team => 
+        team.id === teamId 
+          ? { ...team, clientAssigned: clients }
+          : team
+      )
+    );
+  };
   
   const filteredAgents = agentsData.filter(agent => 
     agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,11 +150,14 @@ const Dashboard = () => {
     agent.tools.some(tool => tool.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
-  const filteredTeams = teamsData.filter(team => 
+  const filteredTeams = teams.filter(team => 
     team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     team.strategy.toLowerCase().includes(searchTerm.toLowerCase()) ||
     team.agents.some(agent => agent.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    team.clientAssigned.some(client => client.toLowerCase().includes(searchTerm.toLowerCase()))
+    team.clientAssigned.some(client => 
+      client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      clientsData.find(c => c.id === client)?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
   
   return (
@@ -205,7 +229,17 @@ const Dashboard = () => {
         <TabsContent value="teams" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTeams.map((team) => (
-              <TeamCard key={team.id} team={team} />
+              <TeamCard 
+                key={team.id}
+                id={team.id}
+                name={team.name}
+                strategy={team.strategy}
+                agents={team.agents}
+                active={team.active}
+                clientAssigned={team.clientAssigned}
+                onUpdateClientList={handleUpdateClientList}
+                allClients={clientsData}
+              />
             ))}
           </div>
           
