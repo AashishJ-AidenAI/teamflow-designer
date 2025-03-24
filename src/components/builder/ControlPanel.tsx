@@ -105,7 +105,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
                   onDragStart={(event) => handleDragStart(event, "agent", {
                     label: agent.name,
                     llm: agent.llm,
-                    tools: ["Tool 1", "Tool 2"]
+                    tools: ["Web Search", "Calculator", "Text Analysis"]
                   })}
                 >
                   <div className="flex items-center justify-between">
@@ -134,7 +134,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
             onClick={() => setTeamsExpanded(!teamsExpanded)}
           >
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-team" />
+              <Users className="h-4 w-4 text-blue-500" />
               <h3 className="font-medium">Teams</h3>
             </div>
             {teamsExpanded ? (
@@ -154,7 +154,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
                   onDragStart={(event) => handleDragStart(event, "team", {
                     label: team.name,
                     strategy: team.strategy,
-                    agents: ["Agent 1", "Agent 2", "Agent 3"]
+                    agents: ["Text Summarizer", "Data Analyzer", "Content Writer"]
                   })}
                 >
                   <div className="flex items-center justify-between">
@@ -176,6 +176,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
       </div>
       
       <div className="mt-4 pt-2 border-t border-border">
+        <div className="text-xs text-muted-foreground mb-2 p-2 bg-accent/50 rounded">
+          Drag and drop agents or teams onto the canvas to build your workflow. Connect them by dragging from handles.
+        </div>
         <Button className="w-full">Save Workflow</Button>
       </div>
     </div>
