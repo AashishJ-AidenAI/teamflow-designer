@@ -28,7 +28,24 @@ import ControlPanel from "./ControlPanel";
 import AgentNode, { AgentNodeData } from "../agents/AgentNode";
 import TeamNode, { TeamNodeData } from "../teams/TeamNode";
 
-// Initial template nodes and edges for the flow
+// Ensure edges have the proper type with all required properties
+const initialEdges: Edge[] = [
+  {
+    id: 'template-edge-1',
+    source: 'template-agent-1',
+    target: 'template-team-1',
+    animated: true,
+    style: { stroke: '#3b82f6', strokeWidth: 2 },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+    },
+    // Add optional properties explicitly for TypeScript
+    sourceHandle: null,
+    targetHandle: null,
+  },
+];
+
+// Initial template nodes for the flow
 const initialNodes: Node[] = [
   {
     id: 'template-agent-1',
@@ -52,19 +69,6 @@ const initialNodes: Node[] = [
   },
 ];
 
-const initialEdges: Edge[] = [
-  {
-    id: 'template-edge-1',
-    source: 'template-agent-1',
-    target: 'template-team-1',
-    animated: true,
-    style: { stroke: '#3b82f6', strokeWidth: 2 },
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-    },
-  },
-];
-
 // Define node types with their respective data structures
 const nodeTypes: NodeTypes = {
   agent: AgentNode,
@@ -78,25 +82,50 @@ const FlowContent = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const reactFlowInstance = useReactFlow();
   const [showHelp, setShowHelp] = useState(true);
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   
-  // Initialize the flow after component mount
+  // Initialize the flow after component mount and track container dimensions
   useEffect(() => {
-    // Ensure ReactFlow is initialized with the correct viewport
-    if (reactFlowInstance) {
+    if (reactFlowWrapper.current) {
+      // Set explicit height and width to fix container dimension issues
+      const observer = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          console.log("Flow container dimensions:", { width, height });
+          setContainerDimensions({ width, height });
+        }
+      });
+      
+      observer.observe(reactFlowWrapper.current);
+      
+      return () => {
+        observer.disconnect();
+      };
+    }
+  }, [reactFlowWrapper]);
+
+  // Fit view once the container has dimensions and instance is ready
+  useEffect(() => {
+    if (reactFlowInstance && containerDimensions.width > 0 && containerDimensions.height > 0) {
+      console.log("Fitting view with dimensions:", containerDimensions);
       setTimeout(() => {
         reactFlowInstance.fitView({ padding: 0.2 });
-      }, 100);
+      }, 200);
     }
-  }, [reactFlowInstance]);
+  }, [reactFlowInstance, containerDimensions]);
   
   const onConnect: OnConnect = useCallback(
     (connection) => {
+      console.log("Creating connection:", connection);
       // Create a unique ID for the new edge
       const newEdge = {
         ...connection,
         id: `e${connection.source}-${connection.target}`,
         animated: true,
-        style: { stroke: '#3b82f6', strokeWidth: 2 }
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        }
       };
       setEdges((eds) => addEdge(newEdge, eds));
       toast.success("Connection created successfully");
@@ -107,19 +136,30 @@ const FlowContent = () => {
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
+    console.log("Dragging over flow area");
   }, []);
   
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
       
-      if (!reactFlowWrapper.current || !reactFlowInstance) return;
+      console.log("Drop event triggered");
+      
+      if (!reactFlowWrapper.current || !reactFlowInstance) {
+        console.error("Missing reactFlowWrapper or reactFlowInstance");
+        return;
+      }
       
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow/type");
       const nodeDataString = event.dataTransfer.getData("application/reactflow/data");
       
-      if (!type || !nodeDataString) return;
+      console.log("Drag data:", { type, nodeDataString });
+      
+      if (!type || !nodeDataString) {
+        console.error("Missing type or data in drop event");
+        return;
+      }
       
       try {
         const nodeData = JSON.parse(nodeDataString);
@@ -129,6 +169,8 @@ const FlowContent = () => {
           x: event.clientX - reactFlowBounds.left,
           y: event.clientY - reactFlowBounds.top,
         });
+        
+        console.log("Creating new node at position:", position);
         
         const newNode: Node = {
           id: `${type}-${Date.now()}`,
@@ -173,8 +215,9 @@ const FlowContent = () => {
     toast.success("Selected items deleted");
   }, [setNodes, setEdges]);
 
-  // Pass handleDragStart to ControlPanel
+  // Handle drag start event
   const handleDragStart = useCallback((event: React.DragEvent, nodeType: string, data: any) => {
+    console.log("Drag start from control panel:", { nodeType, data });
     event.dataTransfer.setData("application/reactflow/type", nodeType);
     event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
     event.dataTransfer.effectAllowed = "move";
@@ -184,7 +227,7 @@ const FlowContent = () => {
     <div className="flex h-full">
       <ControlPanel onDragStart={handleDragStart} />
       
-      <div ref={reactFlowWrapper} className="flex-1 h-full border border-dashed border-border relative">
+      <div ref={reactFlowWrapper} className="flex-1 h-full border-2 border-dashed border-border relative" style={{ minHeight: "500px" }}>
         {showHelp && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-lg z-10 text-center max-w-md">
             <p className="text-sm text-muted-foreground mb-2">
@@ -214,6 +257,7 @@ const FlowContent = () => {
           maxZoom={4}
           attributionPosition="bottom-right"
           deleteKeyCode={["Backspace", "Delete"]}
+          style={{ background: "#f8fafc" }}
         >
           <Background gap={16} size={1} color="#f8fafc" />
           <Controls />
@@ -256,8 +300,9 @@ const FlowContent = () => {
 
 // Main component wrapped with ReactFlowProvider
 const AgentBuilder = () => {
+  // Add a wrapper div with explicit height to fix React Flow container sizing issue
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full" style={{ height: "calc(100vh - 64px)" }}>
       <ReactFlowProvider>
         <FlowContent />
       </ReactFlowProvider>

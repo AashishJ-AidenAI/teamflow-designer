@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Bot, Users, Search, PlusCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -52,15 +52,29 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
     team.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDragStart = (event: React.DragEvent, nodeType: string, data: any) => {
+  const handleDragStart = useCallback((event: React.DragEvent, nodeType: string, data: any) => {
+    console.log("ControlPanel handleDragStart:", { nodeType, data });
+    
     if (onDragStart) {
       onDragStart(event, nodeType, data);
     } else {
+      console.log("Using default drag handling (no onDragStart provided)");
       event.dataTransfer.setData("application/reactflow/type", nodeType);
       event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
       event.dataTransfer.effectAllowed = "move";
     }
-  };
+    
+    // This is important for drag feedback
+    const dragPreview = document.createElement('div');
+    dragPreview.className = 'bg-primary text-white p-2 rounded';
+    dragPreview.textContent = nodeType === 'agent' ? 'Agent' : 'Team';
+    document.body.appendChild(dragPreview);
+    
+    // Handle cleanup in a timely manner
+    setTimeout(() => {
+      document.body.removeChild(dragPreview);
+    }, 0);
+  }, [onDragStart]);
 
   return (
     <div className="h-full w-72 bg-card border-r border-border p-4 flex flex-col">
