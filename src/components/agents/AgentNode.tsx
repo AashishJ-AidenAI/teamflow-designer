@@ -1,6 +1,6 @@
 
 import { useCallback } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import { Bot, Cog, X } from "lucide-react";
 
 // Define the data structure that will be passed to the node
@@ -10,13 +10,18 @@ export interface AgentNodeData {
   tools: string[];
 }
 
-// Use the correct NodeProps interface from React Flow
+// Use Node from React Flow
 const AgentNode = ({ 
   id, 
   data, 
   selected, 
   isConnectable 
-}: NodeProps<AgentNodeData>) => {
+}: {
+  id: string;
+  data: AgentNodeData;
+  selected: boolean;
+  isConnectable: boolean;
+}) => {
   const onNodeClick = useCallback(() => {
     console.log("Agent node clicked:", id);
   }, [id]);
@@ -29,7 +34,7 @@ const AgentNode = ({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Bot className="h-4 w-4" />
-          <span className="font-medium">{data.label}</span>
+          <span className="font-medium">{data?.label || "Unnamed Agent"}</span>
         </div>
         <div className="flex gap-1">
           <button className="p-1 hover:bg-white/20 rounded-sm transition-colors">
@@ -44,11 +49,11 @@ const AgentNode = ({
       <div className="text-xs space-y-1">
         <div className="flex items-center justify-between">
           <span className="text-white/80">LLM:</span>
-          <span className="bg-white/20 px-1.5 py-0.5 rounded-sm">{data.llm}</span>
+          <span className="bg-white/20 px-1.5 py-0.5 rounded-sm">{data?.llm || "Unknown"}</span>
         </div>
         
         <div className="flex flex-wrap gap-1 mt-2">
-          {data.tools.map((tool, index) => (
+          {data?.tools && data.tools.map((tool, index) => (
             <span 
               key={index} 
               className="bg-white/20 px-1.5 py-0.5 rounded-sm text-[10px]"

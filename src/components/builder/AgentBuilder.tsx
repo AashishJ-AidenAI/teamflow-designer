@@ -28,8 +28,8 @@ import TeamNode, { TeamNodeData, ExecutionStrategy } from "../teams/TeamNode";
 
 // Define node types with their respective data structures
 const nodeTypes: NodeTypes = {
-  agent: AgentNode,
-  team: TeamNode
+  agent: AgentNode as any,
+  team: TeamNode as any
 };
 
 interface AgentBuilderProps {}
@@ -37,7 +37,6 @@ interface AgentBuilderProps {}
 // Create a separate component for the flow content
 const FlowContent = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const connectingNodeId = useRef<string | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const reactFlowInstance = useReactFlow();
@@ -68,7 +67,7 @@ const FlowContent = () => {
       
       const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow/type");
-      const nodeData = JSON.parse(event.dataTransfer.getData("application/reactflow/data"));
+      const nodeData = JSON.parse(event.dataTransfer.getData("application/reactflow/data") || "{}");
       
       if (!type || !reactFlowBounds) return;
       
@@ -113,6 +112,13 @@ const FlowContent = () => {
     setEdges((eds) => eds.filter((edge) => !edge.selected));
     toast.success("Selected items deleted");
   }, [setNodes, setEdges]);
+
+  // Helper function for drag start
+  function onDragStart(event: React.DragEvent, nodeType: string, data: any) {
+    event.dataTransfer.setData("application/reactflow/type", nodeType);
+    event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
+    event.dataTransfer.effectAllowed = "move";
+  }
 
   return (
     <div className="flex h-full">
@@ -166,13 +172,6 @@ const FlowContent = () => {
       </div>
     </div>
   );
-  
-  // Helper function for drag start
-  function onDragStart(event: React.DragEvent, nodeType: string, data: any) {
-    event.dataTransfer.setData("application/reactflow/type", nodeType);
-    event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
-    event.dataTransfer.effectAllowed = "move";
-  }
 };
 
 // Main component wrapped with ReactFlowProvider

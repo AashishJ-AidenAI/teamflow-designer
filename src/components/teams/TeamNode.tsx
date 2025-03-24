@@ -1,6 +1,6 @@
 
 import { useCallback } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import { Users, Cog, X, GitBranch, Zap, List } from "lucide-react";
 
 // Define the execution strategy type
@@ -13,13 +13,18 @@ export interface TeamNodeData {
   agents: string[];
 }
 
-// Use the correct NodeProps interface from React Flow
+// Use correct typing
 const TeamNode = ({ 
   id, 
   data, 
   selected, 
   isConnectable 
-}: NodeProps<TeamNodeData>) => {
+}: {
+  id: string;
+  data: TeamNodeData;
+  selected: boolean;
+  isConnectable: boolean;
+}) => {
   const onNodeClick = useCallback(() => {
     console.log("Team node clicked:", id);
   }, [id]);
@@ -28,7 +33,7 @@ const TeamNode = ({
     parallel: Zap,
     selection: List,
     sequential: GitBranch
-  }[data.strategy];
+  }[data?.strategy || "parallel"];
 
   return (
     <div 
@@ -38,7 +43,7 @@ const TeamNode = ({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4" />
-          <span className="font-medium">{data.label}</span>
+          <span className="font-medium">{data?.label || "Unnamed Team"}</span>
         </div>
         <div className="flex gap-1">
           <button className="p-1 hover:bg-white/20 rounded-sm transition-colors">
@@ -54,14 +59,14 @@ const TeamNode = ({
         <div className="flex items-center gap-1.5">
           <StrategyIcon className="h-3.5 w-3.5" />
           <span className="bg-white/20 px-1.5 py-0.5 rounded-sm capitalize">
-            {data.strategy} Execution
+            {data?.strategy || "parallel"} Execution
           </span>
         </div>
         
         <div className="mt-2">
-          <span className="text-white/80">Agents: {data.agents.length}</span>
+          <span className="text-white/80">Agents: {data?.agents?.length || 0}</span>
           <div className="flex flex-wrap gap-1 mt-1">
-            {data.agents.slice(0, 3).map((agent, index) => (
+            {data?.agents && data.agents.slice(0, 3).map((agent, index) => (
               <span 
                 key={index} 
                 className="bg-white/20 px-1.5 py-0.5 rounded-sm text-[10px]"
@@ -69,7 +74,7 @@ const TeamNode = ({
                 {agent}
               </span>
             ))}
-            {data.agents.length > 3 && (
+            {data?.agents && data.agents.length > 3 && (
               <span className="bg-white/20 px-1.5 py-0.5 rounded-sm text-[10px]">
                 +{data.agents.length - 3} more
               </span>
