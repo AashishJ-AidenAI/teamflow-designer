@@ -24,22 +24,20 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import ControlPanel from "./ControlPanel";
 import AgentNode, { AgentNodeData } from "../agents/AgentNode";
-import TeamNode, { TeamNodeData, ExecutionStrategy } from "../teams/TeamNode";
+import TeamNode, { TeamNodeData } from "../teams/TeamNode";
 
 // Define node types with their respective data structures
 const nodeTypes: NodeTypes = {
-  agent: AgentNode as any,
-  team: TeamNode as any
+  agent: AgentNode,
+  team: TeamNode
 };
-
-interface AgentBuilderProps {}
 
 // Create a separate component for the flow content
 const FlowContent = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const reactFlowInstance = useReactFlow();
+  const { project } = useReactFlow();
   
   const onConnect: OnConnect = useCallback(
     (connection) => {
@@ -65,29 +63,38 @@ const FlowContent = () => {
     (event: React.DragEvent) => {
       event.preventDefault();
       
-      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      if (!reactFlowWrapper.current) return;
+      
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow/type");
-      const nodeData = JSON.parse(event.dataTransfer.getData("application/reactflow/data") || "{}");
+      const nodeDataString = event.dataTransfer.getData("application/reactflow/data");
       
-      if (!type || !reactFlowBounds) return;
+      if (!type || !nodeDataString) return;
       
-      // Get the position where the node was dropped
-      const position = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
-      });
-      
-      const newNode: Node = {
-        id: `${type}-${Date.now()}`,
-        type,
-        position,
-        data: nodeData,
-      };
-      
-      setNodes((nds) => nds.concat(newNode));
-      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added to workspace`);
+      try {
+        const nodeData = JSON.parse(nodeDataString);
+        
+        // Get the position where the node was dropped
+        const position = project({
+          x: event.clientX - reactFlowBounds.left,
+          y: event.clientY - reactFlowBounds.top,
+        });
+        
+        const newNode: Node = {
+          id: `${type}-${Date.now()}`,
+          type,
+          position,
+          data: nodeData,
+        };
+        
+        setNodes((nds) => nds.concat(newNode));
+        toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added to workspace`);
+      } catch (error) {
+        console.error("Error parsing node data:", error);
+        toast.error("Failed to add element to workspace");
+      }
     },
-    [reactFlowInstance, setNodes]
+    [project, setNodes]
   );
   
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
@@ -113,16 +120,9 @@ const FlowContent = () => {
     toast.success("Selected items deleted");
   }, [setNodes, setEdges]);
 
-  // Helper function for drag start
-  function onDragStart(event: React.DragEvent, nodeType: string, data: any) {
-    event.dataTransfer.setData("application/reactflow/type", nodeType);
-    event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
-    event.dataTransfer.effectAllowed = "move";
-  }
-
   return (
     <div className="flex h-full">
-      <ControlPanel onDragStart={onDragStart} />
+      <ControlPanel />
       
       <div ref={reactFlowWrapper} className="flex-1 h-full">
         <ReactFlow
@@ -175,11 +175,13 @@ const FlowContent = () => {
 };
 
 // Main component wrapped with ReactFlowProvider
-const AgentBuilder: React.FC<AgentBuilderProps> = () => {
+const AgentBuilder = () => {
   return (
-    <ReactFlowProvider>
-      <FlowContent />
-    </ReactFlowProvider>
+    <div className="h-full w-full">
+      <ReactFlowProvider>
+        <FlowContent />
+      </ReactFlowProvider>
+    </div>
   );
 };
 

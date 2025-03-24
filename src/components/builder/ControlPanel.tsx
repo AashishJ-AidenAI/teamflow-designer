@@ -23,7 +23,7 @@ interface TeamItem {
 type Item = AgentItem | TeamItem;
 
 interface ControlPanelProps {
-  onDragStart: (event: React.DragEvent, nodeType: string, data: any) => void;
+  onDragStart?: (event: React.DragEvent, nodeType: string, data: any) => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
@@ -51,6 +51,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
   const filteredTeams = teams.filter(team => 
     team.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDragStart = (event: React.DragEvent, nodeType: string, data: any) => {
+    event.dataTransfer.setData("application/reactflow/type", nodeType);
+    event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
+    event.dataTransfer.effectAllowed = "move";
+  };
 
   return (
     <div className="h-full w-72 bg-card border-r border-border p-4 flex flex-col">
@@ -92,7 +98,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
                   key={agent.id}
                   className="p-2 border border-border rounded-md cursor-move hover:bg-accent/50 transition-colors"
                   draggable
-                  onDragStart={(event) => onDragStart(event, "agent", {
+                  onDragStart={(event) => handleDragStart(event, "agent", {
                     label: agent.name,
                     llm: agent.llm,
                     tools: ["Tool 1", "Tool 2"]
@@ -141,7 +147,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
                   key={team.id}
                   className="p-2 border border-border rounded-md cursor-move hover:bg-accent/50 transition-colors"
                   draggable
-                  onDragStart={(event) => onDragStart(event, "team", {
+                  onDragStart={(event) => handleDragStart(event, "team", {
                     label: team.name,
                     strategy: team.strategy,
                     agents: ["Agent 1", "Agent 2", "Agent 3"]
