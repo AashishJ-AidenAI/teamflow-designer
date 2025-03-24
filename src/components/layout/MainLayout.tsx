@@ -11,7 +11,8 @@ import {
   Settings, 
   LogOut,
   Moon,
-  Sun
+  Sun,
+  Cpu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +69,14 @@ const MainLayout = () => {
             <span>Testing Lab</span>
           </NavLink>
           
+          <NavLink 
+            to="/finetuning" 
+            className={({ isActive }) => cn("nav-link flex items-center gap-2", isActive && "nav-link-active")}
+          >
+            <Cpu className="h-4 w-4" />
+            <span>Fine-Tuning</span>
+          </NavLink>
+          
           <p className="px-3 text-xs font-semibold text-muted-foreground mt-6 mb-2">USER</p>
           <a href="#" className="nav-link flex items-center gap-2">
             <User className="h-4 w-4" />
@@ -112,6 +121,7 @@ const MainLayout = () => {
             {location.pathname === "/dashboard" && "Dashboard"}
             {location.pathname === "/builder" && "Agent Builder"}
             {location.pathname === "/testing" && "Testing Lab"}
+            {location.pathname === "/finetuning" && "Fine-Tuning Lab"}
           </h2>
           
           <div className="flex items-center gap-4">

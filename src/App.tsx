@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import BuilderPage from "./pages/BuilderPage";
 import DashboardPage from "./pages/DashboardPage";
 import TestingPage from "./pages/TestingPage";
+import FineTuningPage from "./pages/FineTuningPage";
 import MainLayout from "./components/layout/MainLayout";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/builder" element={<BuilderPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/testing" element={<TestingPage />} />
+            <Route path="/finetuning" element={<FineTuningPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
