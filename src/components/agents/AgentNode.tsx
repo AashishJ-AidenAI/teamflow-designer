@@ -2,6 +2,11 @@
 import { useCallback } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Bot, Cog, X } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 // Define the data structure that will be passed to the node
 export interface AgentNodeData {
@@ -37,12 +42,26 @@ const AgentNode = ({
           <span className="font-medium">{data?.label || "Unnamed Agent"}</span>
         </div>
         <div className="flex gap-1">
-          <button className="p-1 hover:bg-white/20 rounded-sm transition-colors">
-            <Cog className="h-3.5 w-3.5" />
-          </button>
-          <button className="p-1 hover:bg-white/20 rounded-sm transition-colors">
-            <X className="h-3.5 w-3.5" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="p-1 hover:bg-white/20 rounded-sm transition-colors">
+                <Cog className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Configure agent
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="p-1 hover:bg-white/20 rounded-sm transition-colors">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Remove agent
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
       

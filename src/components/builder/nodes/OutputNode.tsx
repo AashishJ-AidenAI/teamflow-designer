@@ -2,6 +2,11 @@
 import { Handle, Position } from "@xyflow/react";
 import { CircleArrowDown, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 export interface OutputNodeData {
   label: string;
@@ -23,9 +28,16 @@ const OutputNode = ({
           <CircleArrowDown className="h-4 w-4" />
           <span className="font-medium">{data?.label || "Output"}</span>
         </div>
-        <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-          <Edit className="h-3.5 w-3.5" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+              <Edit className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Edit output configuration
+          </TooltipContent>
+        </Tooltip>
       </div>
       
       <div className="text-xs space-y-1">

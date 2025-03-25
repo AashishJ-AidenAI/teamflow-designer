@@ -14,13 +14,14 @@ import MainLayout from "./components/layout/MainLayout";
 import { AgentProvider } from "./context/AgentContext";
 import { KnowledgebaseProvider } from "./context/KnowledgebaseContext";
 
+// Create a new QueryClient instance
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AgentProvider>
-        <KnowledgebaseProvider>
+    <AgentProvider>
+      <KnowledgebaseProvider>
+        <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -35,9 +36,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </KnowledgebaseProvider>
-      </AgentProvider>
-    </TooltipProvider>
+        </TooltipProvider>
+      </KnowledgebaseProvider>
+    </AgentProvider>
   </QueryClientProvider>
 );
 
