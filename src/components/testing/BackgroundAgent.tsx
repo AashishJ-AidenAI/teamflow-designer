@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Send, 
   Bot, 
@@ -58,6 +57,28 @@ const BackgroundAgent: React.FC<BackgroundAgentProps> = ({ agentName, agentType 
   const [completeTime, setCompleteTime] = useState<Date | null>(null);
   const [taskType, setTaskType] = useState<BackgroundAgentType>("text");
   const [file, setFile] = useState<File | null>(null);
+  
+  useEffect(() => {
+    let predefinedTask = "";
+    
+    if (agentName.toLowerCase().includes("document") || agentName.toLowerCase().includes("data")) {
+      setTaskType("file");
+      predefinedTask = "Process uploaded document to extract key information.";
+    } else if (agentName.toLowerCase().includes("research") || agentName.toLowerCase().includes("search")) {
+      setTaskType("search");
+      predefinedTask = "Research recent advancements in artificial intelligence and summarize findings.";
+    } else if (agentName.toLowerCase().includes("email") || agentName.toLowerCase().includes("parser")) {
+      setTaskType("text");
+      predefinedTask = "Parse the following email to extract action items, dates, and contacts:\n\nSubject: Project Timeline Update\nFrom: project-manager@company.com\n\nHi Team,\n\nWe need to adjust our project timeline. Please complete the frontend by May 15th, backend by May 25th, and schedule a demo with the client on June 1st at 2 PM. Contact Sarah (sarah@client.com) if you have any questions.\n\nRegards,\nProject Manager";
+    } else if (agentName.toLowerCase().includes("validation")) {
+      setTaskType("data");
+      predefinedTask = "Validate the customer records for inconsistencies and formatting issues.";
+    } else {
+      predefinedTask = "Analyze the provided content and provide insights based on your capabilities.";
+    }
+    
+    setInput(predefinedTask);
+  }, [agentName]);
   
   const handleSubmit = () => {
     if (taskType === "text" && !input.trim()) return;

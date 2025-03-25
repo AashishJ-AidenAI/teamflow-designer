@@ -5,38 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ExecutionStrategy } from "../teams/TeamNode";
+import { Agent } from "@/context/AgentContext";
 
-interface AgentItem {
-  id: string;
-  type: "agent";
-  name: string;
-  llm: string;
+interface ControlPanelProps {
+  onDragStart?: (event: React.DragEvent, nodeType: string, data: any) => void;
+  agents: Agent[];
 }
 
-interface TeamItem {
+type TeamItem = {
   id: string;
   type: "team";
   name: string;
   strategy: ExecutionStrategy;
-}
+};
 
-type Item = AgentItem | TeamItem;
-
-interface ControlPanelProps {
-  onDragStart?: (event: React.DragEvent, nodeType: string, data: any) => void;
-}
-
-const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart, agents }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [teamsExpanded, setTeamsExpanded] = useState(true);
-  
-  const agents: AgentItem[] = [
-    { id: "a1", type: "agent", name: "Text Summarizer", llm: "GPT-4" },
-    { id: "a2", type: "agent", name: "Data Analyzer", llm: "Claude-3" },
-    { id: "a3", type: "agent", name: "Code Generator", llm: "Gemini Pro" },
-    { id: "a4", type: "agent", name: "Content Writer", llm: "GPT-4" },
-  ];
   
   const teams: TeamItem[] = [
     { id: "t1", type: "team", name: "Research Team", strategy: "parallel" },
@@ -119,7 +105,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
                   onDragStart={(event) => handleDragStart(event, "agent", {
                     label: agent.name,
                     llm: agent.llm,
-                    tools: ["Web Search", "Calculator", "Text Analysis"]
+                    tools: agent.tools || ["Web Search", "Calculator", "Text Analysis"]
                   })}
                 >
                   <div className="flex items-center justify-between">
@@ -130,11 +116,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
                   </div>
                 </div>
               ))}
-              
-              <Button variant="ghost" size="sm" className="w-full flex justify-center items-center gap-1">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span>Create New Agent</span>
-              </Button>
             </div>
           )}
         </div>
@@ -179,11 +160,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart }) => {
                   </div>
                 </div>
               ))}
-              
-              <Button variant="ghost" size="sm" className="w-full flex justify-center items-center gap-1">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span>Create New Team</span>
-              </Button>
             </div>
           )}
         </div>

@@ -11,26 +11,32 @@ import DashboardPage from "./pages/DashboardPage";
 import TestingPage from "./pages/TestingPage";
 import FineTuningPage from "./pages/FineTuningPage";
 import MainLayout from "./components/layout/MainLayout";
+import { AgentProvider } from "./context/AgentContext";
+import { KnowledgebaseProvider } from "./context/KnowledgebaseContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route element={<MainLayout />}>
-            <Route path="/builder" element={<BuilderPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/testing" element={<TestingPage />} />
-            <Route path="/finetuning" element={<FineTuningPage />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AgentProvider>
+        <KnowledgebaseProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route element={<MainLayout />}>
+                <Route path="/builder" element={<BuilderPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/testing" element={<TestingPage />} />
+                <Route path="/finetuning" element={<FineTuningPage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </KnowledgebaseProvider>
+      </AgentProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

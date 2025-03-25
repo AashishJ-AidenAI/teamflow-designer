@@ -12,25 +12,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Agent } from "@/context/AgentContext";
+import { useAgents } from "@/context/AgentContext";
+import { toast } from "sonner";
 
 interface AgentCardProps {
-  agent: {
-    id: string;
-    name: string;
-    llm: string;
-    tools: string[];
-    active: boolean;
-    responseTime: number;
-    usageCount: number;
-  };
+  agent: Agent;
+  onEdit: () => void;
 }
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
+const AgentCard: React.FC<AgentCardProps> = ({ agent, onEdit }) => {
+  const { updateAgent } = useAgents();
   const [isActive, setIsActive] = useState(agent.active);
   
   const handleActiveChange = (checked: boolean) => {
     setIsActive(checked);
-    // Here you would update the agent status in the backend
+    updateAgent({
+      ...agent,
+      active: checked
+    });
+    toast.success(`${agent.name} is now ${checked ? 'active' : 'inactive'}`);
   };
   
   return (
@@ -54,7 +55,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 <span>Edit</span>
               </DropdownMenuItem>
@@ -63,7 +64,10 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
                 <span>Assign to Client</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem 
+                className="text-destructive"
+                onClick={() => toast.error("Agent templates cannot be deleted.")}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 <span>Delete</span>
               </DropdownMenuItem>

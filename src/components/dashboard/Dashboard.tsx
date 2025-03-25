@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Tabs, 
@@ -24,127 +25,41 @@ import {
 import AgentCard from "./AgentCard";
 import TeamCard from "./TeamCard";
 import Metrics from "./Metrics";
-import { ExecutionStrategy } from "../teams/TeamNode";
-
-// Sample data
-const agentsData = [
-  {
-    id: "a1",
-    name: "Text Summarizer",
-    llm: "GPT-4",
-    tools: ["Summarization", "Translation", "Paraphrasing"],
-    active: true,
-    responseTime: 220,
-    usageCount: 1280,
-  },
-  {
-    id: "a2",
-    name: "Data Analyzer",
-    llm: "Claude-3",
-    tools: ["Data Analysis", "Chart Generation", "Insight Extraction"],
-    active: true,
-    responseTime: 300,
-    usageCount: 950,
-  },
-  {
-    id: "a3",
-    name: "Code Generator",
-    llm: "Gemini Pro",
-    tools: ["Code Generation", "Code Review", "Bug Fixing"],
-    active: false,
-    responseTime: 150,
-    usageCount: 750,
-  },
-  {
-    id: "a4",
-    name: "Content Writer",
-    llm: "GPT-4",
-    tools: ["Content Creation", "Editing", "SEO Optimization"],
-    active: true,
-    responseTime: 180,
-    usageCount: 1100,
-  },
-  {
-    id: "a5",
-    name: "Research Assistant",
-    llm: "Claude-3",
-    tools: ["Web Search", "Document Analysis", "Citation Generator"],
-    active: true,
-    responseTime: 250,
-    usageCount: 870,
-  },
-  {
-    id: "a6",
-    name: "Image Analyzer",
-    llm: "Gemini Pro",
-    tools: ["Image Recognition", "Object Detection", "Caption Generation"],
-    active: false,
-    responseTime: 350,
-    usageCount: 580,
-  },
-];
-
-const teamsData = [
-  {
-    id: "t1",
-    name: "Research Team",
-    strategy: "parallel" as ExecutionStrategy,
-    agents: ["Text Summarizer", "Data Analyzer", "Research Assistant"],
-    active: true,
-    clientAssigned: ["Client A", "Client B"],
-  },
-  {
-    id: "t2",
-    name: "Content Team",
-    strategy: "selection" as ExecutionStrategy,
-    agents: ["Content Writer", "Text Summarizer"],
-    active: true,
-    clientAssigned: ["Client C"],
-  },
-  {
-    id: "t3",
-    name: "Dev Team",
-    strategy: "sequential" as ExecutionStrategy,
-    agents: ["Code Generator", "Data Analyzer"],
-    active: false,
-    clientAssigned: [],
-  },
-  {
-    id: "t4",
-    name: "Full Analysis Team",
-    strategy: "sequential" as ExecutionStrategy,
-    agents: ["Data Analyzer", "Content Writer", "Image Analyzer"],
-    active: true,
-    clientAssigned: ["Client A", "Client D"],
-  },
-];
-
-// Sample client data
-const clientsData = [
-  { id: "Client A", name: "Acme Corp" },
-  { id: "Client B", name: "Beta Industries" },
-  { id: "Client C", name: "Catalyst Group" },
-  { id: "Client D", name: "Delta Technologies" },
-  { id: "Client E", name: "Epsilon Software" },
-  { id: "Client F", name: "Foxtrot Media" },
-];
+import NewTeamModal from "./NewTeamModal";
+import EditAgentModal from "./EditAgentModal";
+import { useAgents } from "@/context/AgentContext";
+import { toast } from "sonner";
 
 const Dashboard = () => {
+  const { agents, teams, updateAgent, addTeam, updateClientList } = useAgents();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("agents");
-  const [teams, setTeams] = useState(teamsData);
+  const [isNewTeamModalOpen, setIsNewTeamModalOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<string | null>(null);
   
-  const handleUpdateClientList = (teamId: string, clients: string[]) => {
-    setTeams(prevTeams => 
-      prevTeams.map(team => 
-        team.id === teamId 
-          ? { ...team, clientAssigned: clients }
-          : team
-      )
-    );
+  // Client data
+  const clientsData = [
+    { id: "Client A", name: "Acme Corp" },
+    { id: "Client B", name: "Beta Industries" },
+    { id: "Client C", name: "Catalyst Group" },
+    { id: "Client D", name: "Delta Technologies" },
+    { id: "Client E", name: "Epsilon Software" },
+    { id: "Client F", name: "Foxtrot Media" },
+  ];
+  
+  const handleAgentUpdate = (updatedAgent: any) => {
+    updateAgent(updatedAgent);
+    setEditingAgent(null);
+    toast.success("Agent updated successfully");
   };
   
-  const filteredAgents = agentsData.filter(agent => 
+  const handleCreateTeam = (newTeam: any) => {
+    addTeam(newTeam);
+    setIsNewTeamModalOpen(false);
+    toast.success("Team created successfully");
+  };
+  
+  const filteredAgents = agents.filter(agent => 
     agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.llm.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.tools.some(tool => tool.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -159,6 +74,11 @@ const Dashboard = () => {
       clientsData.find(c => c.id === client)?.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  const handleEditAgent = (agentId: string) => {
+    console.log("Editing agent:", agentId);
+    setEditingAgent(agentId);
+  };
   
   return (
     <div className="space-y-6">
@@ -205,17 +125,26 @@ const Dashboard = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            <Button className="gap-2">
-              <PlusCircle className="h-4 w-4" />
-              New {activeTab === "agents" ? "Agent" : "Team"}
-            </Button>
+            {activeTab === "teams" && (
+              <Button 
+                className="gap-2"
+                onClick={() => setIsNewTeamModalOpen(true)}
+              >
+                <PlusCircle className="h-4 w-4" />
+                New Team
+              </Button>
+            )}
           </div>
         </div>
         
         <TabsContent value="agents" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredAgents.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
+              <AgentCard 
+                key={agent.id} 
+                agent={agent} 
+                onEdit={() => handleEditAgent(agent.id)}
+              />
             ))}
           </div>
           
@@ -237,7 +166,7 @@ const Dashboard = () => {
                 agents={team.agents}
                 active={team.active}
                 clientAssigned={team.clientAssigned}
-                onUpdateClientList={handleUpdateClientList}
+                onUpdateClientList={updateClientList}
                 allClients={clientsData}
               />
             ))}
@@ -250,6 +179,21 @@ const Dashboard = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Modals */}
+      <NewTeamModal
+        isOpen={isNewTeamModalOpen}
+        onClose={() => setIsNewTeamModalOpen(false)}
+        onSave={handleCreateTeam}
+        allAgents={agents}
+      />
+
+      <EditAgentModal
+        isOpen={!!editingAgent}
+        onClose={() => setEditingAgent(null)}
+        onSave={handleAgentUpdate}
+        agent={agents.find(a => a.id === editingAgent) || null}
+      />
     </div>
   );
 };

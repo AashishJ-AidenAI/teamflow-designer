@@ -17,7 +17,6 @@ import {
   ReactFlowProvider,
   useReactFlow,
   Panel,
-  XYPosition,
   MarkerType,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -27,9 +26,22 @@ import { Button } from "@/components/ui/button";
 import ControlPanel from "./ControlPanel";
 import AgentNode, { AgentNodeData } from "../agents/AgentNode";
 import TeamNode, { TeamNodeData } from "../teams/TeamNode";
+import { useAgents } from "@/context/AgentContext";
 
-// Ensure edges have the proper type with all required properties
-const initialEdges: Edge[] = [
+// Define proper edge type
+interface CustomEdge extends Edge {
+  animated?: boolean;
+  style?: {
+    stroke: string;
+    strokeWidth: number;
+  };
+  markerEnd?: {
+    type: MarkerType;
+  };
+}
+
+// Initial template edges with correct typing
+const initialEdges: CustomEdge[] = [
   {
     id: 'template-edge-1',
     source: 'template-agent-1',
@@ -39,7 +51,6 @@ const initialEdges: Edge[] = [
     markerEnd: {
       type: MarkerType.ArrowClosed,
     },
-    // Add optional properties explicitly for TypeScript
     sourceHandle: null,
     targetHandle: null,
   },
@@ -77,6 +88,7 @@ const nodeTypes: NodeTypes = {
 
 // Create a separate component for the flow content
 const FlowContent = () => {
+  const { agents, teams } = useAgents();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -118,7 +130,7 @@ const FlowContent = () => {
     (connection) => {
       console.log("Creating connection:", connection);
       // Create a unique ID for the new edge
-      const newEdge = {
+      const newEdge: CustomEdge = {
         ...connection,
         id: `e${connection.source}-${connection.target}`,
         animated: true,
@@ -195,6 +207,13 @@ const FlowContent = () => {
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
     // Handle node click (for editing, etc.)
     console.log("Node clicked:", node);
+    
+    // If node is an agent node, show edit modal
+    if (node.type === 'agent') {
+      toast.info("Agent editor would open here", {
+        description: "Edit tools, name, and configuration"
+      });
+    }
   }, []);
   
   const onNodeDragStop: NodeMouseHandler = useCallback((event, node) => {
@@ -225,9 +244,16 @@ const FlowContent = () => {
 
   return (
     <div className="flex h-full">
-      <ControlPanel onDragStart={handleDragStart} />
+      <ControlPanel 
+        onDragStart={handleDragStart} 
+        agents={agents}
+      />
       
-      <div ref={reactFlowWrapper} className="flex-1 h-full border-2 border-dashed border-border relative" style={{ minHeight: "500px" }}>
+      <div 
+        ref={reactFlowWrapper} 
+        className="flex-1 h-full border-2 border-dashed border-border relative" 
+        style={{ minHeight: "500px" }}
+      >
         {showHelp && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-lg z-10 text-center max-w-md">
             <p className="text-sm text-muted-foreground mb-2">
