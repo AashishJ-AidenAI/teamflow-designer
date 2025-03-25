@@ -22,7 +22,7 @@ const InputNode = ({
   selected: boolean;
 }) => {
   return (
-    <div className={`w-56 p-3 rounded-md bg-green-500 text-white shadow-md ${selected ? 'ring-2 ring-ring' : ''}`}>
+    <div className={`w-56 p-3 rounded-md bg-green-500 text-white ${selected ? 'ring-2 ring-ring' : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <CircleArrowRight className="h-4 w-4" />

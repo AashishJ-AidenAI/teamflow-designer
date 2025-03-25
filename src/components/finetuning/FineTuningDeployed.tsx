@@ -1,246 +1,391 @@
 
 import { useState } from "react";
 import { 
-  Cpu, 
-  Server, 
-  Globe, 
-  ArrowUpDown, 
-  Users, 
-  Rocket, 
-  BarChart, 
-  Copy,
-  CheckCircle,
-  AlertCircle
-} from "lucide-react";
-import { 
   Card, 
   CardContent, 
-  CardDescription,
-  CardFooter,
+  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { DeployedModel } from "@/types/finetuning";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { 
+  Search, 
+  Server, 
+  Trash2, 
+  BarChart, 
+  ChevronDown, 
+  ChevronUp, 
+  Clock, 
+  RefreshCw,
+  Users
+} from "lucide-react";
+
+// Sample deployed models data
+const initialDeployedModels = [
+  {
+    id: "dm001",
+    name: "Customer Service Assistant",
+    baseModel: "gpt-3.5-turbo",
+    fineTunedOn: "2024-02-15",
+    deployedOn: "2024-02-20",
+    status: "active",
+    usageCount: 4528,
+    responseTimeMs: 240,
+    assignedClients: ["Client A", "Client B", "Client C"],
+    description: "Fine-tuned for handling customer service queries with product knowledge"
+  },
+  {
+    id: "dm002",
+    name: "Legal Document Analyzer",
+    baseModel: "gpt-4",
+    fineTunedOn: "2024-01-10",
+    deployedOn: "2024-01-15",
+    status: "inactive",
+    usageCount: 876,
+    responseTimeMs: 450,
+    assignedClients: ["Client D"],
+    description: "Specialized in analyzing legal documents and contracts"
+  },
+  {
+    id: "dm003",
+    name: "Sales Call Assistant",
+    baseModel: "claude-3-opus",
+    fineTunedOn: "2024-03-01",
+    deployedOn: "2024-03-05",
+    status: "active",
+    usageCount: 2134,
+    responseTimeMs: 320,
+    assignedClients: ["Client B", "Client E"],
+    description: "Assists sales representatives during calls with product information and competitive analysis"
+  },
+  {
+    id: "dm004",
+    name: "Technical Support Bot",
+    baseModel: "gpt-4",
+    fineTunedOn: "2024-02-20",
+    deployedOn: "2024-02-25",
+    status: "active",
+    usageCount: 3298,
+    responseTimeMs: 380,
+    assignedClients: ["Client A", "Client F"],
+    description: "Handles technical support queries for software products"
+  },
+  {
+    id: "dm005",
+    name: "Financial Advisor",
+    baseModel: "claude-3-opus",
+    fineTunedOn: "2024-01-25",
+    deployedOn: "2024-02-01",
+    status: "inactive",
+    usageCount: 542,
+    responseTimeMs: 400,
+    assignedClients: [],
+    description: "Provides financial advice and analysis based on market trends"
+  }
+];
 
 const FineTuningDeployed = () => {
-  const [deployedModels, setDeployedModels] = useState<DeployedModel[]>([
-    {
-      id: "deploy-1",
-      name: "Customer Support GPT",
-      trainingJobId: "job-1",
-      deployedAt: new Date("2023-10-12"),
-      status: "active",
-      endpoint: "api/v1/models/customer-support-gpt",
-      version: "1.0.0"
-    },
-    {
-      id: "deploy-2",
-      name: "Documentation Assistant",
-      trainingJobId: "job-fake",
-      deployedAt: new Date("2023-10-02"),
-      status: "active",
-      endpoint: "api/v1/models/documentation-assistant",
-      version: "2.1.5"
-    },
-    {
-      id: "deploy-3",
-      name: "Sales Conversation Agent",
-      trainingJobId: "job-fake-2",
-      deployedAt: new Date("2023-10-16"),
-      status: "deploying",
-      version: "1.0.0"
+  const [deployedModels, setDeployedModels] = useState(initialDeployedModels);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: "ascending" | "descending";
+  } | null>(null);
+  const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
+  
+  const handleModelToggle = (modelId: string, newStatus: boolean) => {
+    setDeployedModels(models => 
+      models.map(model => 
+        model.id === modelId ? 
+          { ...model, status: newStatus ? "active" : "inactive" } : 
+          model
+      )
+    );
+    
+    const model = deployedModels.find(m => m.id === modelId);
+    toast.success(`${model?.name} ${newStatus ? "activated" : "deactivated"} successfully`);
+  };
+  
+  const handleDeleteModel = (modelId: string) => {
+    setDeployedModels(models => models.filter(model => model.id !== modelId));
+    toast.success("Model removed from deployment successfully");
+  };
+  
+  const requestSort = (key: string) => {
+    let direction: "ascending" | "descending" = "ascending";
+    
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
     }
-  ]);
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    });
+    
+    setSortConfig({ key, direction });
   };
-
-  const getStatusIndicator = (status: string) => {
-    switch (status) {
-      case "active": 
-        return <div className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-green-500"></span>
-          <span className="text-xs text-green-500 font-medium">Active</span>
-        </div>;
-      case "inactive": 
-        return <div className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-gray-500"></span>
-          <span className="text-xs text-gray-500 font-medium">Inactive</span>
-        </div>;
-      case "deploying": 
-        return <div className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-          <span className="text-xs text-blue-500 font-medium">Deploying</span>
-        </div>;
-      case "failed": 
-        return <div className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-red-500"></span>
-          <span className="text-xs text-red-500 font-medium">Failed</span>
-        </div>;
-      default: return null;
+  
+  const getSortIndicator = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return null;
     }
+    
+    return sortConfig.direction === "ascending" ? 
+      <ChevronUp className="h-4 w-4" /> : 
+      <ChevronDown className="h-4 w-4" />;
   };
-
-  const handleCopyEndpoint = (endpoint: string) => {
-    navigator.clipboard.writeText(endpoint);
-    toast.success("API endpoint copied to clipboard");
+  
+  const toggleModelDetails = (modelId: string) => {
+    setExpandedModelId(expandedModelId === modelId ? null : modelId);
   };
-
-  const deployToAgentTemplate = (modelId: string) => {
-    toast.success("Model connected to agent template", {
-      description: "You can now use this model in the Agent Builder."
+  
+  // Filter and sort the models
+  const filteredAndSortedModels = [...deployedModels]
+    .filter(model => 
+      model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      model.baseModel.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      model.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      model.assignedClients.some(client => 
+        client.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    )
+    .sort((a, b) => {
+      if (!sortConfig) return 0;
+      
+      const key = sortConfig.key as keyof typeof a;
+      
+      if (a[key] < b[key]) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
     });
-  };
-
+  
   return (
-    <div className="w-full h-full flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-medium">Deployed Models</h2>
-          <p className="text-muted-foreground">Manage your fine-tuned models deployed in production</p>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {deployedModels.map(model => (
-          <Card key={model.id} className="overflow-hidden">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div className="flex gap-3">
-                  <Server className="h-8 w-8 text-primary" />
-                  <div>
-                    <CardTitle>{model.name}</CardTitle>
-                    <CardDescription>
-                      v{model.version} • Deployed {formatDate(model.deployedAt)}
-                    </CardDescription>
-                  </div>
-                </div>
-                {getStatusIndicator(model.status)}
-              </div>
-            </CardHeader>
-            <CardContent className="pb-3">
-              {model.status === "deploying" && (
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span>Deployment Progress</span>
-                    <span>75%</span>
-                  </div>
-                  <Progress value={75} className="h-2" />
-                </div>
-              )}
-              
-              <div className="space-y-3">
-                {model.endpoint && (
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-1 text-sm">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">API Endpoint</span>
-                    </div>
-                    <div className="flex gap-1 items-center">
-                      <Badge variant="outline" className="font-mono text-xs">{model.endpoint}</Badge>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6"
-                        onClick={() => handleCopyEndpoint(model.endpoint as string)}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1 text-sm">
-                    <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Usage</span>
-                  </div>
-                  <Badge 
-                    variant="outline" 
-                    className={model.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : ""}
-                  >
-                    {model.status === "active" ? "245 requests/day" : "N/A"}
-                  </Badge>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1 text-sm">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Used By</span>
-                  </div>
-                  <Badge 
-                    variant="outline" 
-                    className={model.status === "active" ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" : ""}
-                  >
-                    {model.status === "active" ? "3 Agents" : "None"}
-                  </Badge>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1 text-sm">
-                    <Cpu className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Status</span>
-                  </div>
-                  <div className="flex gap-1 items-center">
-                    {model.status === "active" ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : model.status === "deploying" ? (
-                      <span className="h-4 w-4 flex items-center justify-center">
-                        <span className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></span>
-                      </span>
-                    ) : (
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    )}
-                    <span className="text-sm capitalize">{model.status}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t pt-3 flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1"
-                disabled={model.status !== "active"}
-              >
-                <BarChart className="h-4 w-4 mr-2" />
-                Analytics
-              </Button>
-              <Button 
-                size="sm" 
-                className="flex-1"
-                disabled={model.status !== "active"}
-                onClick={() => deployToAgentTemplate(model.id)}
-              >
-                <Rocket className="h-4 w-4 mr-2" />
-                Use in Agent
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-      
-      {deployedModels.length === 0 && (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-border rounded-lg">
-          <Server className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No deployed models</h3>
-          <p className="text-muted-foreground mb-4 max-w-md">
-            After completing a fine-tuning job, you can deploy your model for use in agents
-          </p>
-          <Button onClick={() => window.history.back()}>
-            Return to Training Jobs
+    <div className="space-y-6">
+      <div className="flex justify-between">
+        <h2 className="text-xl font-semibold">Deployed Models</h2>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search deployed models..."
+              className="pl-8 w-[300px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Button className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
           </Button>
         </div>
-      )}
+      </div>
+      
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>Deployment Management</CardTitle>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="cursor-pointer w-[250px]" onClick={() => requestSort("name")}>
+                  <div className="flex items-center gap-2">
+                    Model Name
+                    {getSortIndicator("name")}
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => requestSort("baseModel")}>
+                  <div className="flex items-center gap-2">
+                    Base Model
+                    {getSortIndicator("baseModel")}
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => requestSort("deployedOn")}>
+                  <div className="flex items-center gap-2">
+                    Deployed On
+                    {getSortIndicator("deployedOn")}
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => requestSort("usageCount")}>
+                  <div className="flex items-center gap-2">
+                    Usage
+                    {getSortIndicator("usageCount")}
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => requestSort("responseTimeMs")}>
+                  <div className="flex items-center gap-2">
+                    Response Time
+                    {getSortIndicator("responseTimeMs")}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAndSortedModels.length > 0 ? (
+                filteredAndSortedModels.map((model) => (
+                  <>
+                    <TableRow key={model.id} className="cursor-pointer hover:bg-accent/50" onClick={() => toggleModelDetails(model.id)}>
+                      <TableCell className="font-medium">{model.name}</TableCell>
+                      <TableCell>{model.baseModel}</TableCell>
+                      <TableCell>{model.deployedOn}</TableCell>
+                      <TableCell>{model.usageCount.toLocaleString()}</TableCell>
+                      <TableCell>{model.responseTimeMs}ms</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            checked={model.status === "active"}
+                            onCheckedChange={(checked) => handleModelToggle(model.id, checked)}
+                            aria-label="Toggle model status"
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <BarChart className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="icon" className="h-8 w-8 text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Deployed Model</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove {model.name} from deployment? This won't delete the fine-tuned model itself, just its deployment.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDeleteModel(model.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    
+                    {expandedModelId === model.id && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="bg-accent/30 p-4">
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="font-medium mb-1">Description</h4>
+                              <p className="text-sm text-muted-foreground">{model.description}</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4">
+                              <div>
+                                <h4 className="font-medium mb-1 flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-muted-foreground" />
+                                  Fine-Tuned On
+                                </h4>
+                                <p className="text-sm">{model.fineTunedOn}</p>
+                              </div>
+                              
+                              <div>
+                                <h4 className="font-medium mb-1 flex items-center gap-2">
+                                  <Server className="h-4 w-4 text-muted-foreground" />
+                                  Deployment Status
+                                </h4>
+                                <Badge variant={model.status === "active" ? "default" : "secondary"}>
+                                  {model.status === "active" ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
+                              
+                              <div>
+                                <h4 className="font-medium mb-1 flex items-center gap-2">
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                  Assigned Clients
+                                </h4>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {model.assignedClients.length > 0 ? (
+                                    model.assignedClients.map((client, idx) => (
+                                      <Badge key={idx} variant="outline" className="text-xs">
+                                        {client}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">None assigned</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-end gap-2 mt-4">
+                              <Button size="sm">View Usage Analytics</Button>
+                              <Button size="sm" variant="outline">Edit Deployment</Button>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-10">
+                    <div className="flex flex-col items-center justify-center">
+                      <Server className="h-10 w-10 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No deployed models found matching your search</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-4"
+                        onClick={() => setSearchTerm("")}
+                      >
+                        Clear search
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+        
+        <CardFooter className="flex justify-between pt-6">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredAndSortedModels.length} of {deployedModels.length} deployed models
+          </div>
+          <Button>
+            Deploy New Model
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 };

@@ -1,113 +1,102 @@
 
-import { useState } from "react";
-import { Bot, MoreVertical, Edit, Trash2, Share2, Activity } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Agent } from "@/context/AgentContext";
-import { useAgents } from "@/context/AgentContext";
-import { toast } from "sonner";
+import { Bot, Edit, Trash2, Copy, Users } from "lucide-react";
 
 interface AgentCardProps {
-  agent: Agent;
+  agent: {
+    id: string;
+    name: string;
+    llm: string;
+    tools: string[];
+    clientAssigned?: string[];
+    active?: boolean;
+  };
   onEdit: () => void;
+  onAssignClients?: () => void;
 }
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent, onEdit }) => {
-  const { updateAgent } = useAgents();
-  const [isActive, setIsActive] = useState(agent.active);
-  
-  const handleActiveChange = (checked: boolean) => {
-    setIsActive(checked);
-    updateAgent({
-      ...agent,
-      active: checked
-    });
-    toast.success(`${agent.name} is now ${checked ? 'active' : 'inactive'}`);
-  };
-  
+const AgentCard: React.FC<AgentCardProps> = ({ agent, onEdit, onAssignClients }) => {
   return (
-    <Card className="overflow-hidden transition-all duration-200 hover:shadow-md">
-      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-md font-medium flex items-center gap-2">
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-primary" />
           {agent.name}
         </CardTitle>
-        
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Active</span>
-            <Switch checked={isActive} onCheckedChange={handleActiveChange} />
-          </div>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit className="mr-2 h-4 w-4" />
-                <span>Edit</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Share2 className="mr-2 h-4 w-4" />
-                <span>Assign to Client</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-destructive"
-                onClick={() => toast.error("Agent templates cannot be deleted.")}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                <span>Delete</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
       </CardHeader>
       
-      <CardContent className="p-4 pt-2">
-        <div className="flex flex-col space-y-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">LLM:</span>
+      <CardContent className="pb-0">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">LLM Model</span>
             <Badge variant="outline">{agent.llm}</Badge>
           </div>
           
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Response Time:</span>
-            <div className="flex items-center gap-1">
-              <Activity className="h-3 w-3 text-primary" />
-              <span>{agent.responseTime}ms</span>
+          <div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Tools</span>
+              <Badge variant="outline">{agent.tools.length}</Badge>
             </div>
-          </div>
-          
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Usage Count:</span>
-            <span>{agent.usageCount}</span>
-          </div>
-          
-          <div className="mt-2 pt-2 border-t border-border">
-            <span className="text-xs text-muted-foreground">Tools:</span>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {agent.tools.map((tool, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
+            
+            <div className="flex flex-wrap gap-1 mt-2">
+              {agent.tools.map((tool, idx) => (
+                <Badge key={idx} variant="secondary" className="text-xs">
                   {tool}
                 </Badge>
               ))}
             </div>
           </div>
+          
+          {agent.clientAssigned && (
+            <div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Assigned Clients</span>
+                <Badge variant="outline">{agent.clientAssigned.length}</Badge>
+              </div>
+              
+              <div className="flex flex-wrap gap-1 mt-2">
+                {agent.clientAssigned.slice(0, 3).map((client, idx) => (
+                  <Badge key={idx} variant="outline" className="text-xs">
+                    {client}
+                  </Badge>
+                ))}
+                {agent.clientAssigned.length > 3 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{agent.clientAssigned.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
+      
+      <CardFooter className="flex justify-between pt-4 pb-4 border-t mt-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-1 text-xs"
+          onClick={onAssignClients}
+        >
+          <Users className="h-3 w-3" />
+          Assign
+        </Button>
+        
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 };

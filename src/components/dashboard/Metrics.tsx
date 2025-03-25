@@ -1,7 +1,7 @@
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, UserCheck, AlertTriangle, TrendingUp } from "lucide-react";
+import { Clock, UserCheck, TrendingUp, DollarSign } from "lucide-react";
 
 // Sample data for charts
 const responseTimeData = [
@@ -12,21 +12,31 @@ const responseTimeData = [
   { name: "Agent 5", value: 250 },
 ];
 
-const usageData = [
-  { name: "Agent 1", value: 35 },
-  { name: "Agent 2", value: 20 },
-  { name: "Agent 3", value: 15 },
-  { name: "Agent 4", value: 20 },
-  { name: "Agent 5", value: 10 },
+const agentUsageData = [
+  { name: "Customer Support Agent", value: 35 },
+  { name: "Data Processing Agent", value: 28 },
+  { name: "Sales Agent", value: 20 },
+  { name: "Pre-screening Agent", value: 15 },
+  { name: "Validation Agent", value: 10 },
 ];
 
-const healthData = [
-  { name: "Healthy", value: 85 },
-  { name: "Degraded", value: 10 },
-  { name: "Failed", value: 5 },
+const clientUsageData = [
+  { name: "Acme Corp", value: 42 },
+  { name: "Beta Industries", value: 28 },
+  { name: "Catalyst Group", value: 18 },
+  { name: "Delta Technologies", value: 12 },
+  { name: "Epsilon Software", value: 8 },
 ];
 
-const COLORS = ["#3b82f6", "#8b5cf6", "#ef4444"];
+const dailyExecutionsData = [
+  { name: "Mon", value: 120 },
+  { name: "Tue", value: 180 },
+  { name: "Wed", value: 160 },
+  { name: "Thu", value: 200 },
+  { name: "Fri", value: 250 },
+  { name: "Sat", value: 100 },
+  { name: "Sun", value: 80 },
+];
 
 const MetricsCard = ({ title, value, icon, description, trend, className = "" }) => (
   <Card className={`overflow-hidden ${className}`}>
@@ -75,10 +85,10 @@ const Metrics = () => {
         />
         
         <MetricsCard 
-          title="Health Status" 
-          value="85% Healthy" 
-          icon={<AlertTriangle className="h-4 w-4 text-primary" />}
-          description="5% agents with issues"
+          title="Total Expenditure" 
+          value="$427.50" 
+          icon={<DollarSign className="h-4 w-4 text-primary" />}
+          description="$32.10 increase from yesterday"
           trend={-1}
         />
       </div>
@@ -86,57 +96,29 @@ const Metrics = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-md">Response Time Per Agent</CardTitle>
+            <CardTitle className="text-md">Most used agents</CardTitle>
           </CardHeader>
           <CardContent className="p-2">
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={responseTimeData}
+                  data={agentUsageData}
+                  layout="vertical"
                   margin={{
                     top: 5,
                     right: 30,
-                    left: 20,
+                    left: 80,
                     bottom: 5,
                   }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value) => [`${value}ms`, "Response Time"]}
-                    labelStyle={{ color: "var(--foreground)" }}
-                    contentStyle={{ 
-                      backgroundColor: "var(--background)",
-                      border: "1px solid var(--border)" 
-                    }}
+                  <XAxis type="number" />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    tick={{ fontSize: 12 }}
+                    width={80}
                   />
-                  <Bar dataKey="value" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-md">Most Used Agents</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={usageData}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
                   <Tooltip 
                     formatter={(value) => [`${value}%`, "Usage"]}
                     labelStyle={{ color: "var(--foreground)" }}
@@ -152,37 +134,81 @@ const Metrics = () => {
           </CardContent>
         </Card>
         
-        <Card className="lg:col-span-2">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-md">Agent Health Status</CardTitle>
+            <CardTitle className="text-md">Which client has used the agents the most</CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <div className="h-[300px] flex justify-center">
-              <ResponsiveContainer width="50%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={healthData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {healthData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={clientUsageData}
+                  layout="vertical"
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 80,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    tick={{ fontSize: 12 }}
+                    width={80}
+                  />
                   <Tooltip 
-                    formatter={(value) => [`${value}%`, "Percentage"]}
+                    formatter={(value) => [`${value}%`, "Usage"]}
                     labelStyle={{ color: "var(--foreground)" }}
                     contentStyle={{ 
                       backgroundColor: "var(--background)",
                       border: "1px solid var(--border)" 
                     }}
                   />
-                </PieChart>
+                  <Bar dataKey="value" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-md">Daily Executions</CardTitle>
+          </CardHeader>
+          <CardContent className="p-2">
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={dailyExecutionsData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value) => [`${value}`, "Executions"]}
+                    labelStyle={{ color: "var(--foreground)" }}
+                    contentStyle={{ 
+                      backgroundColor: "var(--background)",
+                      border: "1px solid var(--border)" 
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#3b82f6" 
+                    activeDot={{ r: 8 }} 
+                    strokeWidth={2}
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </CardContent>

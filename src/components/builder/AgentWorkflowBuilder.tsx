@@ -20,15 +20,18 @@ import {
   MarkerType,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Save, Trash2, Info } from "lucide-react";
+import { Save, Trash2, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ControlPanel from "./ControlPanel";
 import AgentNode, { AgentNodeData } from "../agents/AgentNode";
 import TeamNode, { TeamNodeData } from "../teams/TeamNode";
 import InputNode from "./nodes/InputNode";
 import OutputNode from "./nodes/OutputNode";
+import IfNode from "./nodes/IfNode";
 import { useAgents } from "@/context/AgentContext";
+import { validateWorkflow, ValidationResult } from "@/utils/workflowValidation";
 
 // Define proper edge type
 interface CustomEdge extends Edge {
@@ -109,7 +112,285 @@ const nodeTypes: NodeTypes = {
   agent: AgentNode,
   team: TeamNode,
   input: InputNode,
-  output: OutputNode
+  output: OutputNode,
+  if: IfNode
+};
+
+// Mock saved workflows - in a real app, these would come from a database
+const savedWorkflowsData = {
+  "wf1": {
+    nodes: [
+      {
+        id: 'input-1',
+        type: 'input',
+        position: { x: 250, y: 50 },
+        data: {
+          label: 'Customer Request',
+          format: 'JSON',
+          description: 'Customer support request'
+        },
+      },
+      {
+        id: 'agent-1',
+        type: 'agent',
+        position: { x: 250, y: 200 },
+        data: {
+          label: 'Customer Support Agent',
+          llm: 'GPT-4',
+          tools: ['Knowledge Base', 'Email Templates']
+        },
+      },
+      {
+        id: 'agent-2',
+        type: 'agent',
+        position: { x: 250, y: 350 },
+        data: {
+          label: 'Document Processing Agent',
+          llm: 'Claude-3',
+          tools: ['Document Analysis', 'Data Extraction']
+        },
+      },
+      {
+        id: 'output-1',
+        type: 'output',
+        position: { x: 250, y: 500 },
+        data: {
+          label: 'Support Resolution',
+          format: 'JSON',
+          description: 'Customer support resolution'
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'e1-2',
+        source: 'input-1',
+        target: 'agent-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+      },
+      {
+        id: 'e2-3',
+        source: 'agent-1',
+        target: 'agent-2',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+      },
+      {
+        id: 'e3-4',
+        source: 'agent-2',
+        target: 'output-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+      },
+    ]
+  },
+  "wf2": {
+    nodes: [
+      {
+        id: 'input-1',
+        type: 'input',
+        position: { x: 250, y: 50 },
+        data: {
+          label: 'Lead Information',
+          format: 'JSON',
+          description: 'Sales lead information'
+        },
+      },
+      {
+        id: 'agent-1',
+        type: 'agent',
+        position: { x: 250, y: 200 },
+        data: {
+          label: 'Pre-screening Agent',
+          llm: 'GPT-4',
+          tools: ['Lead Scoring', 'Contact Validation']
+        },
+      },
+      {
+        id: 'if-1',
+        type: 'if',
+        position: { x: 250, y: 350 },
+        data: {
+          label: 'Qualified Lead Check',
+          condition: 'lead_score > 70',
+          description: 'Check if lead is qualified'
+        },
+      },
+      {
+        id: 'agent-2',
+        type: 'agent',
+        position: { x: 100, y: 500 },
+        data: {
+          label: 'Lead Nurturing Agent',
+          llm: 'Claude-3',
+          tools: ['Email Campaigns', 'CRM Update']
+        },
+      },
+      {
+        id: 'agent-3',
+        type: 'agent',
+        position: { x: 400, y: 500 },
+        data: {
+          label: 'Sales Agent',
+          llm: 'GPT-4',
+          tools: ['Sales Pitch Generator', 'Meeting Scheduler']
+        },
+      },
+      {
+        id: 'output-1',
+        type: 'output',
+        position: { x: 100, y: 650 },
+        data: {
+          label: 'Nurturing Queue',
+          format: 'JSON',
+          description: 'Leads for nurturing'
+        },
+      },
+      {
+        id: 'output-2',
+        type: 'output',
+        position: { x: 400, y: 650 },
+        data: {
+          label: 'Sales Queue',
+          format: 'JSON',
+          description: 'Qualified leads for sales'
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'e1-2',
+        source: 'input-1',
+        target: 'agent-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e2-3',
+        source: 'agent-1',
+        target: 'if-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e3-4',
+        source: 'if-1',
+        target: 'agent-2',
+        sourceHandle: 'false',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e3-5',
+        source: 'if-1',
+        target: 'agent-3',
+        sourceHandle: 'true',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e4-6',
+        source: 'agent-2',
+        target: 'output-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e5-7',
+        source: 'agent-3',
+        target: 'output-2',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+    ]
+  },
+  "wf3": {
+    // Document Processing workflow data...
+    nodes: [
+      {
+        id: 'input-1',
+        type: 'input',
+        position: { x: 250, y: 50 },
+        data: {
+          label: 'Document Input',
+          format: 'PDF',
+          description: 'Document for processing'
+        },
+      },
+      {
+        id: 'agent-1',
+        type: 'agent',
+        position: { x: 250, y: 200 },
+        data: {
+          label: 'Document Processing Agent',
+          llm: 'GPT-4',
+          tools: ['OCR', 'Text Extraction']
+        },
+      },
+      {
+        id: 'agent-2',
+        type: 'agent',
+        position: { x: 250, y: 350 },
+        data: {
+          label: 'Validation Agent',
+          llm: 'Claude-3',
+          tools: ['Data Validation', 'Error Detection']
+        },
+      },
+      {
+        id: 'output-1',
+        type: 'output',
+        position: { x: 250, y: 500 },
+        data: {
+          label: 'Structured Data',
+          format: 'JSON',
+          description: 'Validated structured data'
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'e1-2',
+        source: 'input-1',
+        target: 'agent-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e2-3',
+        source: 'agent-1',
+        target: 'agent-2',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e3-4',
+        source: 'agent-2',
+        target: 'output-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+    ]
+  }
 };
 
 // Create a separate component for the flow content
@@ -121,6 +402,8 @@ const FlowContent = () => {
   const reactFlowInstance = useReactFlow();
   const [showHelp, setShowHelp] = useState(true);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [validation, setValidation] = useState<ValidationResult>({ isValid: true, errors: [] });
   
   // Initialize the flow after component mount and track container dimensions
   useEffect(() => {
@@ -151,6 +434,12 @@ const FlowContent = () => {
       }, 200);
     }
   }, [reactFlowInstance, containerDimensions]);
+
+  // Validate workflow when nodes or edges change
+  useEffect(() => {
+    const validationResult = validateWorkflow(nodes, edges);
+    setValidation(validationResult);
+  }, [nodes, edges]);
   
   const onConnect: OnConnect = useCallback(
     (connection) => {
@@ -247,6 +536,10 @@ const FlowContent = () => {
       toast.info(`${node.type.charAt(0).toUpperCase() + node.type.slice(1)} configuration`, {
         description: "Configure data format and connections"
       });
+    } else if (node.type === 'if') {
+      toast.info("If Statement editor would open here", {
+        description: "Configure conditional logic"
+      });
     }
   }, []);
   
@@ -256,6 +549,16 @@ const FlowContent = () => {
   }, []);
   
   const onSaveFlow = useCallback(() => {
+    // Validate workflow before saving
+    const validationResult = validateWorkflow(nodes, edges);
+    
+    if (!validationResult.isValid) {
+      toast.error("Cannot save workflow with errors", {
+        description: validationResult.errors.join(", ")
+      });
+      return;
+    }
+    
     // Save the current flow configuration (nodes and edges)
     const flow = { nodes, edges };
     localStorage.setItem("savedFlow", JSON.stringify(flow));
@@ -268,6 +571,26 @@ const FlowContent = () => {
     toast.success("Selected items deleted");
   }, [setNodes, setEdges]);
 
+  // Load a saved workflow
+  const handleLoadWorkflow = useCallback((workflowId: string) => {
+    console.log("Loading workflow:", workflowId);
+    const workflow = savedWorkflowsData[workflowId as keyof typeof savedWorkflowsData];
+    
+    if (workflow) {
+      setNodes(workflow.nodes);
+      setEdges(workflow.edges);
+      setSelectedWorkflowId(workflowId);
+      toast.success("Workflow loaded successfully");
+      
+      // Fit view after loading workflow
+      setTimeout(() => {
+        reactFlowInstance?.fitView({ padding: 0.2 });
+      }, 200);
+    } else {
+      toast.error("Failed to load workflow");
+    }
+  }, [reactFlowInstance, setNodes, setEdges]);
+
   // Handle drag start event
   const handleDragStart = useCallback((event: React.DragEvent, nodeType: string, data: any) => {
     console.log("Drag start from control panel:", { nodeType, data });
@@ -276,46 +599,13 @@ const FlowContent = () => {
     event.dataTransfer.effectAllowed = "move";
   }, []);
 
-  // Check workflow validity (at least one input and one output node)
-  const validateWorkflow = useCallback(() => {
-    const inputNodes = nodes.filter(node => node.type === 'input');
-    const outputNodes = nodes.filter(node => node.type === 'output');
-    
-    if (inputNodes.length === 0) {
-      toast.error("Workflow must have at least one Input node");
-      return false;
-    }
-    
-    if (outputNodes.length === 0) {
-      toast.error("Workflow must have at least one Output node");
-      return false;
-    }
-    
-    // Check for orphaned nodes (nodes without connections)
-    const connectedNodeIds = new Set<string>();
-    
-    edges.forEach(edge => {
-      connectedNodeIds.add(edge.source);
-      connectedNodeIds.add(edge.target);
-    });
-    
-    const orphanedNodes = nodes.filter(node => !connectedNodeIds.has(node.id));
-    
-    if (orphanedNodes.length > 0) {
-      toast.warning("Workflow contains unconnected nodes", {
-        description: "All nodes should be connected to the workflow"
-      });
-      return false;
-    }
-    
-    return true;
-  }, [nodes, edges]);
-
   return (
     <div className="flex h-full">
       <ControlPanel 
         onDragStart={handleDragStart} 
         agents={agents}
+        onLoadWorkflow={handleLoadWorkflow}
+        selectedWorkflowId={selectedWorkflowId}
       />
       
       <div 
@@ -323,7 +613,7 @@ const FlowContent = () => {
         className="flex-1 h-full border-2 border-dashed border-border relative" 
         style={{ minHeight: "500px" }}
       >
-        {showHelp && (
+        {showHelp && nodes.length <= 3 && !selectedWorkflowId && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-lg z-10 text-center max-w-md">
             <p className="text-sm text-muted-foreground mb-2">
               Drag components from the left panel and drop them here to build your workflow.
@@ -331,6 +621,22 @@ const FlowContent = () => {
             <p className="text-xs text-muted-foreground">
               Start with Input node → Add Agents or Teams → End with Output node.
             </p>
+          </div>
+        )}
+
+        {!validation.isValid && (
+          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-10 w-[80%] max-w-md">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Workflow Validation Error</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4 text-sm mt-1">
+                  {validation.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
           </div>
         )}
         
@@ -372,11 +678,8 @@ const FlowContent = () => {
               size="sm"
               variant="outline"
               className="gap-2"
-              onClick={() => {
-                if (validateWorkflow()) {
-                  onSaveFlow();
-                }
-              }}
+              onClick={onSaveFlow}
+              disabled={!validation.isValid}
             >
               <Save className="h-4 w-4" />
               Save Workflow
@@ -391,6 +694,15 @@ const FlowContent = () => {
               Delete
             </Button>
           </Panel>
+          
+          {validation.isValid && nodes.length > 0 && (
+            <Panel position="top-left" className="ml-80 mt-2">
+              <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="text-sm">Workflow validation successful</span>
+              </div>
+            </Panel>
+          )}
         </ReactFlow>
       </div>
     </div>

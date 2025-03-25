@@ -7,7 +7,6 @@ import {
   GitBranch, 
   Users, 
   Bot,
-  ArrowRightLeft,
   Trash2,
   Edit,
   Copy
@@ -33,9 +32,10 @@ interface WorkflowCardProps {
     id: string;
     name: string;
   }[];
+  onEdit?: (workflowId: string) => void;
 }
 
-const WorkflowCard: React.FC<WorkflowCardProps> = ({ workflow, allClients }) => {
+const WorkflowCard: React.FC<WorkflowCardProps> = ({ workflow, allClients, onEdit }) => {
   const [isClientManagerOpen, setIsClientManagerOpen] = useState(false);
   
   const handleClientUpdate = useCallback((clients: string[]) => {
@@ -48,8 +48,12 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({ workflow, allClients }) => 
   }, [workflow.name]);
   
   const handleEdit = useCallback(() => {
-    toast.success(`Editing workflow: ${workflow.name}`);
-  }, [workflow.name]);
+    if (onEdit) {
+      onEdit(workflow.id);
+    } else {
+      toast.success(`Editing workflow: ${workflow.name}`);
+    }
+  }, [workflow.id, workflow.name, onEdit]);
   
   const handleDelete = useCallback(() => {
     toast.success(`Deleted workflow: ${workflow.name}`);

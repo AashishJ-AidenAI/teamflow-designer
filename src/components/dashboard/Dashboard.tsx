@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Tabs, 
   TabsContent, 
@@ -30,15 +31,19 @@ import Metrics from "./Metrics";
 import NewTeamModal from "./NewTeamModal";
 import EditAgentModal from "./EditAgentModal";
 import NewWorkflowModal from "./NewWorkflowModal";
+import ClientManager from "./ClientManager";
 import { useAgents } from "@/context/AgentContext";
 import { toast } from "sonner";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { agents, teams, updateAgent, addTeam, updateClientList } = useAgents();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("agents");
   const [isNewTeamModalOpen, setIsNewTeamModalOpen] = useState(false);
   const [isNewWorkflowModalOpen, setIsNewWorkflowModalOpen] = useState(false);
+  const [isClientManagerOpen, setIsClientManagerOpen] = useState(false);
+  const [selectedAgentForClients, setSelectedAgentForClients] = useState<string | null>(null);
   const [editingAgent, setEditingAgent] = useState<string | null>(null);
   
   // Client data
@@ -104,9 +109,41 @@ const Dashboard = () => {
   };
   
   const handleCreateWorkflow = (newWorkflow: any) => {
-    // Here you would add the workflow to your state
+    // Instead of just showing a toast, redirect to builder
     setIsNewWorkflowModalOpen(false);
-    toast.success("Workflow created successfully");
+    navigate("/builder");
+    toast.success("New workflow created. Complete it in the builder");
+  };
+  
+  const handleEditWorkflow = (workflowId: string) => {
+    // Redirect to builder with the workflow ID
+    navigate(`/builder?workflow=${workflowId}`);
+  };
+  
+  const handleNewWorkflow = () => {
+    // Redirect directly to builder for a new workflow
+    navigate("/builder");
+  };
+  
+  const handleAssignClientsToAgent = (agentId: string) => {
+    setSelectedAgentForClients(agentId);
+    setIsClientManagerOpen(true);
+  };
+  
+  const handleUpdateAgentClients = (clients: string[]) => {
+    if (selectedAgentForClients) {
+      const agent = agents.find(a => a.id === selectedAgentForClients);
+      if (agent) {
+        const updatedAgent = {
+          ...agent,
+          clientAssigned: clients
+        };
+        updateAgent(updatedAgent);
+        toast.success(`Updated clients for ${agent.name}`);
+      }
+    }
+    setIsClientManagerOpen(false);
+    setSelectedAgentForClients(null);
   };
   
   const filteredAgents = agents.filter(agent => 
@@ -204,7 +241,7 @@ const Dashboard = () => {
             {activeTab === "workflows" && (
               <Button 
                 className="gap-2"
-                onClick={() => setIsNewWorkflowModalOpen(true)}
+                onClick={handleNewWorkflow}
               >
                 <PlusCircle className="h-4 w-4" />
                 New Workflow
@@ -220,6 +257,7 @@ const Dashboard = () => {
                 key={agent.id} 
                 agent={agent} 
                 onEdit={() => handleEditAgent(agent.id)}
+                onAssignClients={() => handleAssignClientsToAgent(agent.id)}
               />
             ))}
           </div>
@@ -262,6 +300,7 @@ const Dashboard = () => {
                 key={workflow.id}
                 workflow={workflow}
                 allClients={clientsData}
+                onEdit={() => handleEditWorkflow(workflow.id)}
               />
             ))}
           </div>
@@ -295,6 +334,15 @@ const Dashboard = () => {
         onSave={handleCreateWorkflow}
         allAgents={agents}
         allTeams={teams}
+        allClients={clientsData}
+      />
+      
+      <ClientManager 
+        isOpen={isClientManagerOpen}
+        onClose={() => setIsClientManagerOpen(false)}
+        onSave={handleUpdateAgentClients}
+        teamName={agents.find(a => a.id === selectedAgentForClients)?.name || "Agent"}
+        selectedClients={agents.find(a => a.id === selectedAgentForClients)?.clientAssigned || []}
         allClients={clientsData}
       />
     </div>
