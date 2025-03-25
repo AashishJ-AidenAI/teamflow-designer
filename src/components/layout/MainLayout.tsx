@@ -58,7 +58,7 @@ const MainLayout = () => {
             className={({ isActive }) => cn("nav-link flex items-center gap-2", isActive && "nav-link-active")}
           >
             <Users className="h-4 w-4" />
-            <span>Agent Builder</span>
+            <span>Agent Workflow Builder</span>
           </NavLink>
           
           <NavLink 
@@ -119,7 +119,7 @@ const MainLayout = () => {
         <header className="h-16 border-b border-border flex items-center justify-between px-6">
           <h2 className="text-xl font-medium">
             {location.pathname === "/dashboard" && "Dashboard"}
-            {location.pathname === "/builder" && "Agent Builder"}
+            {location.pathname === "/builder" && "Agent Workflow Builder"}
             {location.pathname === "/testing" && "Testing Lab"}
             {location.pathname === "/finetuning" && "Fine-Tuning Lab"}
           </h2>

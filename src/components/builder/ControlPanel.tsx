@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from "react";
-import { Bot, Users, Search, PlusCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Bot, Users, Search, PlusCircle, ChevronDown, ChevronUp, CircleArrowRight, CircleArrowDown, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +21,7 @@ type TeamItem = {
 
 const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart, agents }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [workflowNodesExpanded, setWorkflowNodesExpanded] = useState(true);
   const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [teamsExpanded, setTeamsExpanded] = useState(true);
   
@@ -65,7 +66,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart, agents }) => {
   return (
     <div className="h-full w-72 bg-card border-r border-border p-4 flex flex-col">
       <div className="mb-4">
-        <h2 className="font-semibold text-lg mb-2">Components</h2>
+        <h2 className="font-semibold text-lg mb-2">Workflow Components</h2>
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -78,6 +79,70 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart, agents }) => {
       </div>
       
       <div className="flex-1 overflow-auto space-y-4">
+        {/* Workflow Nodes Section */}
+        <div>
+          <div 
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => setWorkflowNodesExpanded(!workflowNodesExpanded)}
+          >
+            <div className="flex items-center gap-2">
+              <Settings className="h-4 w-4 text-green-500" />
+              <h3 className="font-medium">Workflow Nodes</h3>
+            </div>
+            {workflowNodesExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </div>
+          
+          {workflowNodesExpanded && (
+            <div className="mt-2 space-y-2">
+              <div
+                className="p-2 border border-border rounded-md cursor-move hover:bg-accent/50 transition-colors"
+                draggable
+                onDragStart={(event) => handleDragStart(event, "input", {
+                  label: "Input",
+                  format: "JSON",
+                  description: "Workflow starting point"
+                })}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CircleArrowRight className="h-4 w-4 text-green-500" />
+                    <span>Input Node</span>
+                  </div>
+                  <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">
+                    Start
+                  </span>
+                </div>
+              </div>
+              
+              <div
+                className="p-2 border border-border rounded-md cursor-move hover:bg-accent/50 transition-colors"
+                draggable
+                onDragStart={(event) => handleDragStart(event, "output", {
+                  label: "Output",
+                  format: "JSON",
+                  description: "Workflow endpoint"
+                })}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CircleArrowDown className="h-4 w-4 text-blue-500" />
+                    <span>Output Node</span>
+                  </div>
+                  <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">
+                    End
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <Separator />
+        
         {/* Agents Section */}
         <div>
           <div 
@@ -167,7 +232,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onDragStart, agents }) => {
       
       <div className="mt-4 pt-2 border-t border-border">
         <div className="text-xs text-muted-foreground mb-2 p-2 bg-accent/50 rounded">
-          Drag and drop agents or teams onto the canvas to build your workflow. Connect them by dragging from handles.
+          Build your workflow with Input → Process (Agents/Teams) → Output. Connect nodes by dragging between handles.
         </div>
         <Button className="w-full">Save Workflow</Button>
       </div>

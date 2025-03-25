@@ -1,10 +1,10 @@
 
-import AgentBuilder from "@/components/builder/AgentBuilder";
+import AgentWorkflowBuilder from "@/components/builder/AgentWorkflowBuilder";
 
 const BuilderPage = () => {
   return (
     <div className="h-full w-full" style={{ height: "calc(100vh - 64px)" }}>
-      <AgentBuilder />
+      <AgentWorkflowBuilder />
     </div>
   );
 };
