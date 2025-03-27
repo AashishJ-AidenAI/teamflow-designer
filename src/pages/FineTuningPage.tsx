@@ -14,6 +14,15 @@ import FineTuningDeployed from "@/components/finetuning/FineTuningDeployed";
 
 const FineTuningPage = () => {
   const [activeTab, setActiveTab] = useState("models");
+  
+  const handleSelectModel = (modelId: string) => {
+    console.log(`Selected model: ${modelId}`);
+    setActiveTab("jobs");
+  };
+
+  const handleDeploySuccess = () => {
+    setActiveTab("deployed");
+  };
 
   return (
     <div className="container mx-auto py-6">
@@ -40,11 +49,11 @@ const FineTuningPage = () => {
         </TabsList>
         
         <TabsContent value="models">
-          <FineTuningModels />
+          <FineTuningModels onSelectModel={handleSelectModel} />
         </TabsContent>
         
         <TabsContent value="jobs">
-          <FineTuningJobs />
+          <FineTuningJobs onDeploySuccess={handleDeploySuccess} />
         </TabsContent>
         
         <TabsContent value="upload">

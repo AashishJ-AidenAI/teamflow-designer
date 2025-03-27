@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -136,7 +135,7 @@ const Dashboard = () => {
       if (agent) {
         const updatedAgent = {
           ...agent,
-          clientAssigned: clients
+          assignedClients: clients
         };
         updateAgent(updatedAgent);
         toast.success(`Updated clients for ${agent.name}`);
@@ -342,7 +341,7 @@ const Dashboard = () => {
         onClose={() => setIsClientManagerOpen(false)}
         onSave={handleUpdateAgentClients}
         teamName={agents.find(a => a.id === selectedAgentForClients)?.name || "Agent"}
-        selectedClients={agents.find(a => a.id === selectedAgentForClients)?.clientAssigned || []}
+        selectedClients={agents.find(a => a.id === selectedAgentForClients)?.assignedClients || []}
         allClients={clientsData}
       />
     </div>

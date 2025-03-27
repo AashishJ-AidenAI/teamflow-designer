@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useRef, useEffect } from "react";
 import {
   ReactFlow,
@@ -33,7 +32,6 @@ import IfNode from "./nodes/IfNode";
 import { useAgents } from "@/context/AgentContext";
 import { validateWorkflow, ValidationResult } from "@/utils/workflowValidation";
 
-// Define proper edge type
 interface CustomEdge extends Edge {
   animated?: boolean;
   style?: {
@@ -45,7 +43,6 @@ interface CustomEdge extends Edge {
   };
 }
 
-// Initial template edges with correct typing
 const initialEdges: CustomEdge[] = [
   {
     id: 'template-edge-1',
@@ -73,7 +70,6 @@ const initialEdges: CustomEdge[] = [
   },
 ];
 
-// Initial template nodes for the flow
 const initialNodes: Node[] = [
   {
     id: 'input-1',
@@ -107,7 +103,6 @@ const initialNodes: Node[] = [
   },
 ];
 
-// Define node types with their respective data structures
 const nodeTypes: NodeTypes = {
   agent: AgentNode,
   team: TeamNode,
@@ -116,7 +111,6 @@ const nodeTypes: NodeTypes = {
   if: IfNode
 };
 
-// Mock saved workflows - in a real app, these would come from a database
 const savedWorkflowsData = {
   "wf1": {
     nodes: [
@@ -321,7 +315,6 @@ const savedWorkflowsData = {
     ]
   },
   "wf3": {
-    // Document Processing workflow data...
     nodes: [
       {
         id: 'input-1',
@@ -393,7 +386,6 @@ const savedWorkflowsData = {
   }
 };
 
-// Create a separate component for the flow content
 const FlowContent = () => {
   const { agents, teams } = useAgents();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -405,10 +397,8 @@ const FlowContent = () => {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [validation, setValidation] = useState<ValidationResult>({ isValid: true, errors: [] });
   
-  // Initialize the flow after component mount and track container dimensions
   useEffect(() => {
     if (reactFlowWrapper.current) {
-      // Set explicit height and width to fix container dimension issues
       const observer = new ResizeObserver(entries => {
         for (const entry of entries) {
           const { width, height } = entry.contentRect;
@@ -425,7 +415,6 @@ const FlowContent = () => {
     }
   }, [reactFlowWrapper]);
 
-  // Fit view once the container has dimensions and instance is ready
   useEffect(() => {
     if (reactFlowInstance && containerDimensions.width > 0 && containerDimensions.height > 0) {
       console.log("Fitting view with dimensions:", containerDimensions);
@@ -435,7 +424,6 @@ const FlowContent = () => {
     }
   }, [reactFlowInstance, containerDimensions]);
 
-  // Validate workflow when nodes or edges change
   useEffect(() => {
     const validationResult = validateWorkflow(nodes, edges);
     setValidation(validationResult);
@@ -444,7 +432,6 @@ const FlowContent = () => {
   const onConnect: OnConnect = useCallback(
     (connection) => {
       console.log("Creating connection:", connection);
-      // Create a unique ID for the new edge
       const newEdge: CustomEdge = {
         ...connection,
         id: `e${connection.source}-${connection.target}`,
@@ -491,7 +478,6 @@ const FlowContent = () => {
       try {
         const nodeData = JSON.parse(nodeDataString);
         
-        // Get the position where the node was dropped
         const position = reactFlowInstance.screenToFlowPosition({
           x: event.clientX - reactFlowBounds.left,
           y: event.clientY - reactFlowBounds.top,
@@ -509,7 +495,6 @@ const FlowContent = () => {
         setNodes((nds) => nds.concat(newNode));
         toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added to workflow`);
         
-        // Hide the help message after successfully adding a node
         setShowHelp(false);
       } catch (error) {
         console.error("Error parsing node data:", error);
@@ -520,10 +505,8 @@ const FlowContent = () => {
   );
   
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
-    // Handle node click (for editing, etc.)
     console.log("Node clicked:", node);
     
-    // If node is an agent node, show edit modal
     if (node.type === 'agent') {
       toast.info("Agent editor would open here", {
         description: "Edit tools, name, and configuration"
@@ -544,12 +527,10 @@ const FlowContent = () => {
   }, []);
   
   const onNodeDragStop: NodeMouseHandler = useCallback((event, node) => {
-    // Check for intersections with other nodes for grouping, etc.
     console.log("Node dragged:", node);
   }, []);
   
   const onSaveFlow = useCallback(() => {
-    // Validate workflow before saving
     const validationResult = validateWorkflow(nodes, edges);
     
     if (!validationResult.isValid) {
@@ -559,10 +540,89 @@ const FlowContent = () => {
       return;
     }
     
-    // Save the current flow configuration (nodes and edges)
     const flow = { nodes, edges };
     localStorage.setItem("savedFlow", JSON.stringify(flow));
-    toast.success("Workflow saved successfully!");
+    
+    toast.success("Workflow saved successfully!", {
+      action: {
+        label: "View JSON",
+        onClick: () => {
+          const formattedJson = JSON.stringify(flow, null, 2);
+          
+          const dialog = document.createElement('dialog');
+          dialog.style.padding = '20px';
+          dialog.style.borderRadius = '8px';
+          dialog.style.maxWidth = '80vw';
+          dialog.style.maxHeight = '80vh';
+          dialog.style.overflow = 'auto';
+          dialog.style.position = 'fixed';
+          dialog.style.top = '50%';
+          dialog.style.left = '50%';
+          dialog.style.transform = 'translate(-50%, -50%)';
+          dialog.style.zIndex = '9999';
+          dialog.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+          
+          const header = document.createElement('div');
+          header.style.display = 'flex';
+          header.style.justifyContent = 'space-between';
+          header.style.alignItems = 'center';
+          header.style.marginBottom = '10px';
+          
+          const title = document.createElement('h3');
+          title.textContent = 'Workflow JSON Data';
+          title.style.margin = '0';
+          
+          const closeButton = document.createElement('button');
+          closeButton.textContent = '✕';
+          closeButton.style.background = 'none';
+          closeButton.style.border = 'none';
+          closeButton.style.fontSize = '20px';
+          closeButton.style.cursor = 'pointer';
+          closeButton.onclick = () => dialog.close();
+          
+          const copyButton = document.createElement('button');
+          copyButton.textContent = 'Copy to Clipboard';
+          copyButton.style.marginTop = '10px';
+          copyButton.style.padding = '8px 16px';
+          copyButton.style.borderRadius = '4px';
+          copyButton.style.backgroundColor = '#3b82f6';
+          copyButton.style.color = 'white';
+          copyButton.style.border = 'none';
+          copyButton.style.cursor = 'pointer';
+          copyButton.onclick = () => {
+            navigator.clipboard.writeText(formattedJson);
+            toast.success("JSON copied to clipboard");
+          };
+          
+          const pre = document.createElement('pre');
+          pre.style.backgroundColor = '#f8f9fa';
+          pre.style.padding = '15px';
+          pre.style.borderRadius = '4px';
+          pre.style.overflow = 'auto';
+          pre.style.maxHeight = '50vh';
+          
+          const code = document.createElement('code');
+          code.textContent = formattedJson;
+          
+          pre.appendChild(code);
+          header.appendChild(title);
+          header.appendChild(closeButton);
+          dialog.appendChild(header);
+          dialog.appendChild(pre);
+          dialog.appendChild(copyButton);
+          
+          document.body.appendChild(dialog);
+          dialog.showModal();
+          
+          dialog.addEventListener('close', () => {
+            document.body.removeChild(dialog);
+          });
+        },
+      },
+      duration: 5000,
+    });
+    
+    console.log("Saved workflow:", flow);
   }, [nodes, edges]);
   
   const onDeleteSelected = useCallback(() => {
@@ -571,7 +631,6 @@ const FlowContent = () => {
     toast.success("Selected items deleted");
   }, [setNodes, setEdges]);
 
-  // Load a saved workflow
   const handleLoadWorkflow = useCallback((workflowId: string) => {
     console.log("Loading workflow:", workflowId);
     const workflow = savedWorkflowsData[workflowId as keyof typeof savedWorkflowsData];
@@ -582,7 +641,6 @@ const FlowContent = () => {
       setSelectedWorkflowId(workflowId);
       toast.success("Workflow loaded successfully");
       
-      // Fit view after loading workflow
       setTimeout(() => {
         reactFlowInstance?.fitView({ padding: 0.2 });
       }, 200);
@@ -591,7 +649,6 @@ const FlowContent = () => {
     }
   }, [reactFlowInstance, setNodes, setEdges]);
 
-  // Handle drag start event
   const handleDragStart = useCallback((event: React.DragEvent, nodeType: string, data: any) => {
     console.log("Drag start from control panel:", { nodeType, data });
     event.dataTransfer.setData("application/reactflow/type", nodeType);
@@ -709,9 +766,7 @@ const FlowContent = () => {
   );
 };
 
-// Main component wrapped with ReactFlowProvider
 const AgentWorkflowBuilder = () => {
-  // Add a wrapper div with explicit height to fix React Flow container sizing issue
   return (
     <div className="h-full w-full" style={{ height: "calc(100vh - 64px)" }}>
       <ReactFlowProvider>

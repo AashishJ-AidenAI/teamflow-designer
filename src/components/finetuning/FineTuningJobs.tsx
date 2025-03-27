@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -140,12 +139,129 @@ const FineTuningJobs = ({ onDeploySuccess }: FineTuningJobsProps) => {
   };
   
   const viewLogs = (jobId: string) => {
-    toast.info("Viewing logs is not implemented in this demo", {
-      description: "In a real application, this would show training logs for job " + jobId
+    const job = jobs.find(j => j.id === jobId);
+    
+    const dialog = document.createElement('dialog');
+    dialog.style.padding = '20px';
+    dialog.style.borderRadius = '8px';
+    dialog.style.maxWidth = '80vw';
+    dialog.style.maxHeight = '80vh';
+    dialog.style.overflow = 'auto';
+    dialog.style.position = 'fixed';
+    dialog.style.top = '50%';
+    dialog.style.left = '50%';
+    dialog.style.transform = 'translate(-50%, -50%)';
+    dialog.style.zIndex = '9999';
+    dialog.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+    
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '10px';
+    
+    const title = document.createElement('h3');
+    title.textContent = `Training Logs for Job #${jobId.replace("job-", "")}`;
+    title.style.margin = '0';
+    
+    const closeButton = document.createElement('button');
+    closeButton.textContent = '✕';
+    closeButton.style.background = 'none';
+    closeButton.style.border = 'none';
+    closeButton.style.fontSize = '20px';
+    closeButton.style.cursor = 'pointer';
+    closeButton.onclick = () => dialog.close();
+    
+    const pre = document.createElement('pre');
+    pre.style.backgroundColor = '#f8f9fa';
+    pre.style.padding = '15px';
+    pre.style.borderRadius = '4px';
+    pre.style.overflow = 'auto';
+    pre.style.maxHeight = '50vh';
+    pre.style.fontFamily = 'monospace';
+    pre.style.fontSize = '14px';
+    
+    const generateMockLogs = (job: any) => {
+      if (!job) return "No logs available for this job.";
+      
+      const logs = [
+        `[${new Date(job.createdAt).toISOString()}] Job #${job.id.replace("job-", "")} created`,
+      ];
+      
+      if (job.startedAt) {
+        logs.push(`[${new Date(job.startedAt).toISOString()}] Job started`);
+        logs.push(`[${new Date(job.startedAt).toISOString()}] Loading dataset #${job.datasetId.replace("dataset-", "")}`);
+        logs.push(`[${new Date(job.startedAt).toISOString()}] Initializing model #${job.modelId.replace("model-", "")}`);
+        logs.push(`[${new Date(job.startedAt).toISOString()}] Starting training with parameters: epochs=${job.parameters.epochs}, batch_size=${job.parameters.batchSize}, learning_rate=${job.parameters.learningRate}`);
+      }
+      
+      if (job.status === "running" || job.status === "completed") {
+        const epochLogs = [];
+        const epochs = job.parameters.epochs;
+        const progress = job.status === "running" ? job.progress / 100 * epochs : epochs;
+        
+        for (let i = 0; i < Math.floor(progress); i++) {
+          const epochTime = new Date(job.startedAt);
+          epochTime.setMinutes(epochTime.getMinutes() + (i + 1) * 30);
+          
+          const loss = job.status === "completed" && job.metrics ? 
+            job.metrics.loss * (1 + (epochs - i) / epochs) :
+            Math.random() * 0.5 + 0.1;
+          
+          const accuracy = job.status === "completed" && job.metrics ? 
+            job.metrics.accuracy * (i + 1) / epochs :
+            0.5 + Math.random() * 0.4;
+          
+          epochLogs.push(`[${epochTime.toISOString()}] Epoch ${i+1}/${epochs} - loss: ${loss.toFixed(4)}, accuracy: ${accuracy.toFixed(4)}`);
+        }
+        
+        logs.push(...epochLogs);
+      }
+      
+      if (job.completedAt) {
+        logs.push(`[${new Date(job.completedAt).toISOString()}] Training completed`);
+        
+        if (job.status === "completed" && job.metrics) {
+          logs.push(`[${new Date(job.completedAt).toISOString()}] Final metrics - loss: ${job.metrics.loss.toFixed(4)}, accuracy: ${job.metrics.accuracy.toFixed(4)}`);
+          logs.push(`[${new Date(job.completedAt).toISOString()}] Model saved successfully`);
+        }
+        
+        if (job.status === "failed" && job.error) {
+          logs.push(`[${new Date(job.completedAt).toISOString()}] ERROR: ${job.error}`);
+          logs.push(`[${new Date(job.completedAt).toISOString()}] Job failed`);
+        }
+      }
+      
+      return logs.join('\n');
+    };
+    
+    pre.textContent = generateMockLogs(job);
+    
+    header.appendChild(title);
+    header.appendChild(closeButton);
+    dialog.appendChild(header);
+    dialog.appendChild(pre);
+    
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    
+    dialog.addEventListener('close', () => {
+      document.body.removeChild(dialog);
     });
   };
   
   const deployModel = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    
+    setJobs(prevJobs => 
+      prevJobs.map(j => 
+        j.id === jobId 
+          ? { ...j, deployed: true } 
+          : j
+      )
+    );
+    
     toast.success("Model deployed successfully", {
       description: "Your fine-tuned model is now available for use in agents."
     });
@@ -165,6 +281,29 @@ const FineTuningJobs = ({ onDeploySuccess }: FineTuningJobsProps) => {
     toast.success("Job canceled successfully");
   };
   
+  const createNewJob = () => {
+    const newJob = {
+      id: `job-${jobs.length + 1}`,
+      modelId: `model-${Math.floor(Math.random() * 3) + 1}`,
+      datasetId: `dataset-${Math.floor(Math.random() * 3) + 1}`,
+      status: "queued",
+      progress: 0,
+      createdAt: new Date(),
+      parameters: {
+        learningRate: 0.0001,
+        epochs: Math.floor(Math.random() * 3) + 2,
+        batchSize: [8, 16, 32][Math.floor(Math.random() * 3)],
+        validationSplit: 0.2
+      }
+    };
+    
+    setJobs(prevJobs => [newJob, ...prevJobs]);
+    
+    toast.success("New training job created successfully", {
+      description: `Job #${newJob.id.replace("job-", "")} has been added to the queue`
+    });
+  };
+  
   return (
     <div className="w-full h-full flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -173,7 +312,7 @@ const FineTuningJobs = ({ onDeploySuccess }: FineTuningJobsProps) => {
           <p className="text-muted-foreground">Manage your model fine-tuning jobs</p>
         </div>
         
-        <Button>
+        <Button onClick={createNewJob}>
           Create New Job
         </Button>
       </div>
@@ -291,7 +430,7 @@ const FineTuningJobs = ({ onDeploySuccess }: FineTuningJobsProps) => {
           <p className="text-muted-foreground mb-4 max-w-md">
             Start fine-tuning a model by creating a new training job.
           </p>
-          <Button>
+          <Button onClick={createNewJob}>
             Create New Job
           </Button>
         </div>
