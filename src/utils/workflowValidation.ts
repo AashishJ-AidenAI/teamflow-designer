@@ -1,5 +1,6 @@
 
 import { Node, Edge } from "@xyflow/react";
+import { Condition } from "@/components/builder/nodes/IfNode";
 
 export interface ValidationResult {
   isValid: boolean;
@@ -90,6 +91,51 @@ const validateEndpoints = (nodes: Node[]): string[] => {
   return errors;
 };
 
+// Validate condition format
+const validateCondition = (condition: Condition | string): string[] => {
+  const errors: string[] = [];
+  
+  if (typeof condition === 'string') {
+    // Simple validation for string conditions
+    if (condition.trim() === '') {
+      errors.push("Condition cannot be empty");
+    }
+  } else if (condition) {
+    // Object condition validation
+    if ('operator' in condition) {
+      // Simple condition
+      if (!condition.left || condition.left.trim() === '') {
+        errors.push("Condition left operand cannot be empty");
+      }
+      // Right can be various types including boolean false, number 0, etc.
+      if (condition.right === undefined || condition.right === null) {
+        errors.push("Condition right operand cannot be empty");
+      }
+    } else if ('type' in condition && 'conditions' in condition) {
+      // Complex condition
+      if (!condition.type) {
+        errors.push("Condition type (AND/OR) must be specified");
+      }
+      
+      if (!condition.conditions || !Array.isArray(condition.conditions) || condition.conditions.length === 0) {
+        errors.push("Condition must have at least one sub-condition");
+      } else {
+        // Recursively validate sub-conditions
+        for (const subCondition of condition.conditions) {
+          const subErrors = validateCondition(subCondition);
+          errors.push(...subErrors);
+        }
+      }
+    } else {
+      errors.push("Invalid condition format");
+    }
+  } else {
+    errors.push("Condition is required");
+  }
+  
+  return errors;
+};
+
 // Validate that all paths from input eventually reach an output
 const validateAllPathsEndAtOutput = (nodes: Node[], edges: Edge[]): boolean => {
   const inputNode = nodes.find(node => node.type === "input");
@@ -125,6 +171,79 @@ const validateAllPathsEndAtOutput = (nodes: Node[], edges: Edge[]): boolean => {
   }
   
   return true;
+};
+
+// Validate nodes and their data
+const validateNodeData = (nodes: Node[]): string[] => {
+  const errors: string[] = [];
+  
+  for (const node of nodes) {
+    if (!node.data) {
+      errors.push(`Node ${node.id} is missing data`);
+      continue;
+    }
+    
+    // Validate common fields
+    if (!node.data.label) {
+      errors.push(`Node ${node.id} is missing a label`);
+    }
+    
+    // Type-specific validation
+    if (node.type === 'if') {
+      if (!node.data.condition) {
+        errors.push(`If node ${node.id} is missing a condition`);
+      } else {
+        // Validate condition format
+        const conditionErrors = validateCondition(node.data.condition);
+        if (conditionErrors.length > 0) {
+          errors.push(`If node ${node.id} has invalid condition: ${conditionErrors.join(', ')}`);
+        }
+      }
+    } else if (node.type === 'agent') {
+      if (!node.data.llm) {
+        errors.push(`Agent node ${node.id} is missing LLM model`);
+      }
+      if (!node.data.tools || !Array.isArray(node.data.tools) || node.data.tools.length === 0) {
+        errors.push(`Agent node ${node.id} has no tools specified`);
+      }
+    } else if (node.type === 'input' || node.type === 'output') {
+      if (!node.data.format) {
+        errors.push(`${node.type} node ${node.id} is missing format specification`);
+      }
+      if (!node.data.description) {
+        errors.push(`${node.type} node ${node.id} is missing description`);
+      }
+    }
+  }
+  
+  return errors;
+};
+
+// Validate edge connections for if nodes
+const validateIfNodeConnections = (nodes: Node[], edges: Edge[]): string[] => {
+  const errors: string[] = [];
+  
+  // Get all if nodes
+  const ifNodes = nodes.filter(node => node.type === 'if');
+  
+  for (const ifNode of ifNodes) {
+    // Get outgoing edges for this if node
+    const outgoingEdges = edges.filter(edge => edge.source === ifNode.id);
+    
+    // Check if both true and false branches exist
+    const hasTrueBranch = outgoingEdges.some(edge => edge.sourceHandle === 'true');
+    const hasFalseBranch = outgoingEdges.some(edge => edge.sourceHandle === 'false');
+    
+    if (!hasTrueBranch && !hasFalseBranch) {
+      errors.push(`If node ${ifNode.id} has no outgoing connections`);
+    } else if (!hasTrueBranch) {
+      errors.push(`If node ${ifNode.id} is missing the 'true' branch connection`);
+    } else if (!hasFalseBranch) {
+      errors.push(`If node ${ifNode.id} is missing the 'false' branch connection`);
+    }
+  }
+  
+  return errors;
 };
 
 export const validateWorkflow = (nodes: Node[], edges: Edge[]): ValidationResult => {
@@ -165,8 +284,56 @@ export const validateWorkflow = (nodes: Node[], edges: Edge[]): ValidationResult
     errors.push("All paths in the workflow must lead to an Output node");
   }
   
+  // Validate node data
+  const nodeDataErrors = validateNodeData(nodes);
+  errors.push(...nodeDataErrors);
+  
+  // Validate if node connections
+  const ifNodeConnectionErrors = validateIfNodeConnections(nodes, edges);
+  errors.push(...ifNodeConnectionErrors);
+  
   return {
     isValid: errors.length === 0,
     errors
+  };
+};
+
+// Transform workflow for storage/export
+export const formatWorkflowForExport = (nodes: Node[], edges: Edge[]) => {
+  const formattedNodes = nodes.map(node => {
+    const { id, type, position, data } = node;
+    
+    // Remove onUpdate function from data
+    const nodeData = { ...data };
+    delete nodeData.onUpdate;
+    
+    return {
+      id,
+      type,
+      position,
+      data: nodeData
+    };
+  });
+  
+  const formattedEdges = edges.map(edge => {
+    const { id, source, target, sourceHandle, targetHandle } = edge;
+    
+    // For if node connections, transform sourceHandle to conditionHandle
+    const formattedEdge: any = {
+      id,
+      source,
+      target
+    };
+    
+    if (sourceHandle === 'true' || sourceHandle === 'false') {
+      formattedEdge.conditionHandle = sourceHandle;
+    }
+    
+    return formattedEdge;
+  });
+  
+  return {
+    nodes: formattedNodes,
+    edges: formattedEdges
   };
 };

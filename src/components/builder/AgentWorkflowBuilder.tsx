@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useRef, useEffect } from "react";
 import {
   ReactFlow,
@@ -19,7 +20,7 @@ import {
   MarkerType,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Save, Trash2, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Save, Trash2, Info, AlertTriangle, CheckCircle2, Copy, Code } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -28,9 +29,9 @@ import AgentNode, { AgentNodeData } from "../agents/AgentNode";
 import TeamNode, { TeamNodeData } from "../teams/TeamNode";
 import InputNode, { InputNodeData } from "./nodes/InputNode";
 import OutputNode, { OutputNodeData } from "./nodes/OutputNode";
-import IfNode, { IfNodeData } from "./nodes/IfNode";
+import IfNode, { IfNodeData, Condition } from "./nodes/IfNode";
 import { useAgents } from "@/context/AgentContext";
-import { validateWorkflow, ValidationResult } from "@/utils/workflowValidation";
+import { validateWorkflow, ValidationResult, formatWorkflowForExport } from "@/utils/workflowValidation";
 
 interface CustomEdge extends Edge {
   animated?: boolean;
@@ -41,6 +42,7 @@ interface CustomEdge extends Edge {
   markerEnd?: {
     type: MarkerType;
   };
+  conditionHandle?: 'true' | 'false';
 }
 
 const initialEdges: CustomEdge[] = [
@@ -111,6 +113,131 @@ const nodeTypes: NodeTypes = {
   if: IfNode
 };
 
+// Example workflow with complex conditional logic
+const complexWorkflowExample = {
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "input",
+      "position": { x: 250, y: 50 },
+      "data": {
+        "label": "Lead Information",
+        "format": "JSON",
+        "description": "Sales lead data input"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": { x: 250, y: 200 },
+      "data": {
+        "label": "Pre-screening Agent",
+        "llm": "GPT-4",
+        "tools": ["Lead Scoring", "Contact Validation"]
+      }
+    },
+    {
+      "id": "if-1",
+      "type": "if",
+      "position": { x: 250, y: 350 },
+      "data": {
+        "label": "Qualified Lead Check (AND Condition)",
+        "condition": {
+          "type": "AND",
+          "conditions": [
+            {
+              "operator": ">",
+              "left": "lead_score",
+              "right": 70
+            },
+            {
+              "operator": "in",
+              "left": "region",
+              "right": ["US", "EU"]
+            }
+          ]
+        },
+        "description": "Checks if lead meets score and region criteria"
+      }
+    },
+    {
+      "id": "agent-2",
+      "type": "agent",
+      "position": { x: 100, y: 500 },
+      "data": {
+        "label": "Lead Nurturing Agent",
+        "llm": "Claude-3",
+        "tools": ["Email Campaigns", "CRM Update"]
+      }
+    },
+    {
+      "id": "agent-3",
+      "type": "agent",
+      "position": { x: 400, y: 500 },
+      "data": {
+        "label": "Sales Agent",
+        "llm": "GPT-4",
+        "tools": ["Sales Pitch Generator", "Meeting Scheduler"]
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "position": { x: 100, y: 650 },
+      "data": {
+        "label": "Nurturing Queue",
+        "format": "JSON",
+        "description": "Leads for nurturing"
+      }
+    },
+    {
+      "id": "output-2",
+      "type": "output",
+      "position": { x: 400, y: 650 },
+      "data": {
+        "label": "Sales Queue",
+        "format": "JSON",
+        "description": "Qualified leads for sales"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1-2",
+      "source": "input-1",
+      "target": "agent-1"
+    },
+    {
+      "id": "e2-3",
+      "source": "agent-1",
+      "target": "if-1"
+    },
+    {
+      "id": "e3-4",
+      "source": "if-1",
+      "target": "agent-2",
+      "conditionHandle": "false"
+    },
+    {
+      "id": "e3-5",
+      "source": "if-1",
+      "target": "agent-3",
+      "conditionHandle": "true"
+    },
+    {
+      "id": "e4-6",
+      "source": "agent-2",
+      "target": "output-1"
+    },
+    {
+      "id": "e5-7",
+      "source": "agent-3",
+      "target": "output-2"
+    }
+  ]
+};
+
+// More example workflows with the updated structured format
 const savedWorkflowsData = {
   "wf1": {
     nodes: [
@@ -188,16 +315,17 @@ const savedWorkflowsData = {
       },
     ]
   },
-  "wf2": {
+  "wf2": complexWorkflowExample,
+  "wf3": {
     nodes: [
       {
         id: 'input-1',
         type: 'input',
         position: { x: 250, y: 50 },
         data: {
-          label: 'Lead Information',
-          format: 'JSON',
-          description: 'Sales lead information'
+          label: 'Document Input',
+          format: 'PDF',
+          description: 'Document for processing'
         },
       },
       {
@@ -205,9 +333,9 @@ const savedWorkflowsData = {
         type: 'agent',
         position: { x: 250, y: 200 },
         data: {
-          label: 'Pre-screening Agent',
+          label: 'Document Processing Agent',
           llm: 'GPT-4',
-          tools: ['Lead Scoring', 'Contact Validation']
+          tools: ['OCR', 'Text Extraction']
         },
       },
       {
@@ -215,9 +343,13 @@ const savedWorkflowsData = {
         type: 'if',
         position: { x: 250, y: 350 },
         data: {
-          label: 'Qualified Lead Check',
-          condition: 'lead_score > 70',
-          description: 'Check if lead is qualified'
+          label: 'Format Check',
+          condition: {
+            operator: "==",
+            left: "document_type",
+            right: "invoice"
+          },
+          description: 'Check if document is an invoice'
         },
       },
       {
@@ -225,9 +357,9 @@ const savedWorkflowsData = {
         type: 'agent',
         position: { x: 100, y: 500 },
         data: {
-          label: 'Lead Nurturing Agent',
+          label: 'General Document Agent',
           llm: 'Claude-3',
-          tools: ['Email Campaigns', 'CRM Update']
+          tools: ['Data Validation', 'Error Detection']
         },
       },
       {
@@ -235,29 +367,19 @@ const savedWorkflowsData = {
         type: 'agent',
         position: { x: 400, y: 500 },
         data: {
-          label: 'Sales Agent',
+          label: 'Invoice Processing Agent',
           llm: 'GPT-4',
-          tools: ['Sales Pitch Generator', 'Meeting Scheduler']
+          tools: ['Invoice Extraction', 'Accounting Integration']
         },
       },
       {
         id: 'output-1',
         type: 'output',
-        position: { x: 100, y: 650 },
+        position: { x: 250, y: 650 },
         data: {
-          label: 'Nurturing Queue',
+          label: 'Structured Data',
           format: 'JSON',
-          description: 'Leads for nurturing'
-        },
-      },
-      {
-        id: 'output-2',
-        type: 'output',
-        position: { x: 400, y: 650 },
-        data: {
-          label: 'Sales Queue',
-          format: 'JSON',
-          description: 'Qualified leads for sales'
+          description: 'Validated structured data'
         },
       },
     ],
@@ -283,6 +405,7 @@ const savedWorkflowsData = {
         source: 'if-1',
         target: 'agent-2',
         sourceHandle: 'false',
+        conditionHandle: 'false',
         animated: true,
         style: { stroke: '#3b82f6', strokeWidth: 2 },
         markerEnd: { type: MarkerType.ArrowClosed },
@@ -292,6 +415,7 @@ const savedWorkflowsData = {
         source: 'if-1',
         target: 'agent-3',
         sourceHandle: 'true',
+        conditionHandle: 'true',
         animated: true,
         style: { stroke: '#3b82f6', strokeWidth: 2 },
         markerEnd: { type: MarkerType.ArrowClosed },
@@ -307,76 +431,6 @@ const savedWorkflowsData = {
       {
         id: 'e5-7',
         source: 'agent-3',
-        target: 'output-2',
-        animated: true,
-        style: { stroke: '#3b82f6', strokeWidth: 2 },
-        markerEnd: { type: MarkerType.ArrowClosed },
-      },
-    ]
-  },
-  "wf3": {
-    nodes: [
-      {
-        id: 'input-1',
-        type: 'input',
-        position: { x: 250, y: 50 },
-        data: {
-          label: 'Document Input',
-          format: 'PDF',
-          description: 'Document for processing'
-        },
-      },
-      {
-        id: 'agent-1',
-        type: 'agent',
-        position: { x: 250, y: 200 },
-        data: {
-          label: 'Document Processing Agent',
-          llm: 'GPT-4',
-          tools: ['OCR', 'Text Extraction']
-        },
-      },
-      {
-        id: 'agent-2',
-        type: 'agent',
-        position: { x: 250, y: 350 },
-        data: {
-          label: 'Validation Agent',
-          llm: 'Claude-3',
-          tools: ['Data Validation', 'Error Detection']
-        },
-      },
-      {
-        id: 'output-1',
-        type: 'output',
-        position: { x: 250, y: 500 },
-        data: {
-          label: 'Structured Data',
-          format: 'JSON',
-          description: 'Validated structured data'
-        },
-      },
-    ],
-    edges: [
-      {
-        id: 'e1-2',
-        source: 'input-1',
-        target: 'agent-1',
-        animated: true,
-        style: { stroke: '#3b82f6', strokeWidth: 2 },
-        markerEnd: { type: MarkerType.ArrowClosed },
-      },
-      {
-        id: 'e2-3',
-        source: 'agent-1',
-        target: 'agent-2',
-        animated: true,
-        style: { stroke: '#3b82f6', strokeWidth: 2 },
-        markerEnd: { type: MarkerType.ArrowClosed },
-      },
-      {
-        id: 'e3-4',
-        source: 'agent-2',
         target: 'output-1',
         animated: true,
         style: { stroke: '#3b82f6', strokeWidth: 2 },
@@ -456,6 +510,8 @@ const FlowContent = () => {
   const [validation, setValidation] = useState<ValidationResult>({ isValid: true, errors: [] });
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
   const [savedFlowJson, setSavedFlowJson] = useState<string>("");
+  const [jsonEditMode, setJsonEditMode] = useState(false);
+  const [jsonEditValue, setJsonEditValue] = useState<string>("");
   
   useEffect(() => {
     if (reactFlowWrapper.current) {
@@ -492,6 +548,24 @@ const FlowContent = () => {
   const onConnect: OnConnect = useCallback(
     (connection) => {
       console.log("Creating connection:", connection);
+      
+      // Check source node type
+      const sourceNode = nodes.find(node => node.id === connection.source);
+      const targetNode = nodes.find(node => node.id === connection.target);
+      
+      // Prevent connecting output nodes to anything
+      if (sourceNode?.type === 'output') {
+        toast.error("Output nodes cannot have outgoing connections");
+        return;
+      }
+      
+      // Prevent connecting anything to input nodes
+      if (targetNode?.type === 'input') {
+        toast.error("Input nodes cannot have incoming connections");
+        return;
+      }
+      
+      // Create the custom edge with proper styling
       const newEdge: CustomEdge = {
         ...connection,
         id: `e${connection.source}-${connection.target}`,
@@ -501,10 +575,16 @@ const FlowContent = () => {
           type: MarkerType.ArrowClosed,
         }
       };
+      
+      // If this is a connection from an if node, add the condition handle info
+      if (sourceNode?.type === 'if' && connection.sourceHandle) {
+        newEdge.conditionHandle = connection.sourceHandle as 'true' | 'false';
+      }
+      
       setEdges((eds) => addEdge(newEdge, eds));
       toast.success("Connection created successfully");
     },
-    [setEdges]
+    [nodes, setEdges]
   );
   
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -610,23 +690,19 @@ const FlowContent = () => {
       return;
     }
     
-    const simplifiedNodes = nodes.map(node => ({
-      ...node,
-      data: {
-        ...node.data,
-        onUpdate: undefined,
-      }
-    }));
+    // Format the workflow for export using the utility function
+    const formattedWorkflow = formatWorkflowForExport(nodes, edges);
     
-    const flow = { nodes: simplifiedNodes, edges };
-    localStorage.setItem("savedFlow", JSON.stringify(flow));
+    localStorage.setItem("savedFlow", JSON.stringify(formattedWorkflow));
     
-    const formattedJson = JSON.stringify(flow, null, 2);
+    const formattedJson = JSON.stringify(formattedWorkflow, null, 2);
     setSavedFlowJson(formattedJson);
+    setJsonEditValue(formattedJson);
     setJsonDialogOpen(true);
+    setJsonEditMode(false);
     
     toast.success("Workflow saved successfully!");
-    console.log("Saved workflow:", flow);
+    console.log("Saved workflow:", formattedWorkflow);
   }, [nodes, edges]);
   
   const onDeleteSelected = useCallback(() => {
@@ -640,8 +716,49 @@ const FlowContent = () => {
     const workflow = savedWorkflowsData[workflowId as keyof typeof savedWorkflowsData];
     
     if (workflow) {
-      setNodes(workflow.nodes);
-      setEdges(workflow.edges);
+      // Add the onUpdate callback to each node
+      const enhancedNodes = workflow.nodes.map(node => {
+        let enhancedNode = { ...node };
+        
+        if (node.type === 'agent') {
+          enhancedNode.data = {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<AgentNodeData>) => handleNodeUpdate(id, data)
+          };
+        } else if (node.type === 'input') {
+          enhancedNode.data = {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<InputNodeData>) => handleNodeUpdate(id, data)
+          };
+        } else if (node.type === 'output') {
+          enhancedNode.data = {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<OutputNodeData>) => handleNodeUpdate(id, data)
+          };
+        } else if (node.type === 'if') {
+          enhancedNode.data = {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<IfNodeData>) => handleNodeUpdate(id, data)
+          };
+        }
+        
+        return enhancedNode;
+      });
+      
+      // Process edges to ensure proper format for the editor
+      const processedEdges = workflow.edges.map(edge => {
+        const newEdge: CustomEdge = { ...edge };
+        
+        // If we have a conditionHandle, set sourceHandle for editor compatibility
+        if (edge.conditionHandle) {
+          newEdge.sourceHandle = edge.conditionHandle;
+        }
+        
+        return newEdge;
+      });
+      
+      setNodes(enhancedNodes);
+      setEdges(processedEdges);
       setSelectedWorkflowId(workflowId);
       toast.success("Workflow loaded successfully");
       
@@ -651,7 +768,7 @@ const FlowContent = () => {
     } else {
       toast.error("Failed to load workflow");
     }
-  }, [reactFlowInstance, setNodes, setEdges]);
+  }, [reactFlowInstance, setNodes, setEdges, handleNodeUpdate]);
 
   const handleDragStart = useCallback((event: React.DragEvent, nodeType: string, data: any) => {
     console.log("Drag start from control panel:", { nodeType, data });
@@ -659,6 +776,84 @@ const FlowContent = () => {
     event.dataTransfer.setData("application/reactflow/data", JSON.stringify(data));
     event.dataTransfer.effectAllowed = "move";
   }, []);
+  
+  // Function to apply JSON edits to the workflow
+  const applyJsonEdits = useCallback(() => {
+    try {
+      const parsedJson = JSON.parse(jsonEditValue);
+      
+      // Validate basic structure
+      if (!parsedJson.nodes || !Array.isArray(parsedJson.nodes) || 
+          !parsedJson.edges || !Array.isArray(parsedJson.edges)) {
+        toast.error("Invalid workflow format", {
+          description: "Workflow must have nodes and edges arrays"
+        });
+        return;
+      }
+      
+      // Add the onUpdate callback to each node
+      const enhancedNodes = parsedJson.nodes.map((node: any) => {
+        let enhancedNode = { ...node };
+        
+        if (!node.type) {
+          toast.error(`Node ${node.id || 'unknown'} is missing type`);
+          return node;
+        }
+        
+        if (node.type === 'agent') {
+          enhancedNode.data = {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<AgentNodeData>) => handleNodeUpdate(id, data)
+          };
+        } else if (node.type === 'input') {
+          enhancedNode.data = {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<InputNodeData>) => handleNodeUpdate(id, data)
+          };
+        } else if (node.type === 'output') {
+          enhancedNode.data = {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<OutputNodeData>) => handleNodeUpdate(id, data)
+          };
+        } else if (node.type === 'if') {
+          enhancedNode.data = {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<IfNodeData>) => handleNodeUpdate(id, data)
+          };
+        }
+        
+        return enhancedNode;
+      });
+      
+      // Process edges to ensure proper format for the editor
+      const processedEdges = parsedJson.edges.map((edge: any) => {
+        const newEdge: CustomEdge = { ...edge };
+        
+        // If we have a conditionHandle, set sourceHandle for editor compatibility
+        if (edge.conditionHandle) {
+          newEdge.sourceHandle = edge.conditionHandle;
+        }
+        
+        return newEdge;
+      });
+      
+      setNodes(enhancedNodes);
+      setEdges(processedEdges);
+      setJsonDialogOpen(false);
+      
+      setTimeout(() => {
+        reactFlowInstance?.fitView({ padding: 0.2 });
+      }, 200);
+      
+      toast.success("Workflow updated from JSON");
+      
+    } catch (error) {
+      console.error("Error parsing JSON:", error);
+      toast.error("Failed to parse workflow JSON", {
+        description: error instanceof Error ? error.message : "Invalid JSON format"
+      });
+    }
+  }, [jsonEditValue, setNodes, setEdges, reactFlowInstance, handleNodeUpdate]);
 
   return (
     <div className="flex h-full">
@@ -769,31 +964,60 @@ const FlowContent = () => {
       
       {jsonDialogOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center px-6 py-4 border-b">
               <h3 className="text-lg font-medium">Workflow JSON Data</h3>
-              <button 
-                onClick={() => setJsonDialogOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1"
+                  onClick={() => setJsonEditMode(!jsonEditMode)}
+                >
+                  <Code className="h-4 w-4" />
+                  {jsonEditMode ? "View Mode" : "Edit Mode"}
+                </Button>
+                <button 
+                  onClick={() => setJsonDialogOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-auto p-6">
-              <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto max-h-[50vh]">
-                <code>{savedFlowJson}</code>
-              </pre>
+              {jsonEditMode ? (
+                <textarea 
+                  value={jsonEditValue}
+                  onChange={(e) => setJsonEditValue(e.target.value)}
+                  className="w-full h-[60vh] font-mono text-sm p-4 border rounded"
+                />
+              ) : (
+                <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto max-h-[60vh]">
+                  <code>{savedFlowJson}</code>
+                </pre>
+              )}
             </div>
             <div className="px-6 py-4 border-t flex justify-end">
-              <Button 
-                onClick={() => {
-                  navigator.clipboard.writeText(savedFlowJson);
-                  toast.success("JSON copied to clipboard");
-                }}
-                className="mr-2"
-              >
-                Copy to Clipboard
-              </Button>
+              {jsonEditMode ? (
+                <Button 
+                  onClick={applyJsonEdits}
+                  className="mr-2"
+                >
+                  Apply Changes
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(savedFlowJson);
+                    toast.success("JSON copied to clipboard");
+                  }}
+                  className="mr-2"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy to Clipboard
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 onClick={() => setJsonDialogOpen(false)}
