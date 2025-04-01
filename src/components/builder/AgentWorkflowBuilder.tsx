@@ -26,9 +26,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ControlPanel from "./ControlPanel";
 import AgentNode, { AgentNodeData } from "../agents/AgentNode";
 import TeamNode, { TeamNodeData } from "../teams/TeamNode";
-import InputNode from "./nodes/InputNode";
-import OutputNode from "./nodes/OutputNode";
-import IfNode from "./nodes/IfNode";
+import InputNode, { InputNodeData } from "./nodes/InputNode";
+import OutputNode, { OutputNodeData } from "./nodes/OutputNode";
+import IfNode, { IfNodeData } from "./nodes/IfNode";
 import { useAgents } from "@/context/AgentContext";
 import { validateWorkflow, ValidationResult } from "@/utils/workflowValidation";
 
@@ -389,13 +389,53 @@ const savedWorkflowsData = {
 const FlowContent = () => {
   const { agents, teams } = useAgents();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  
+  const enhancedInitialNodes = initialNodes.map(node => {
+    if (node.type === 'agent') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onUpdate: (id: string, data: Partial<AgentNodeData>) => handleNodeUpdate(id, data)
+        }
+      };
+    } else if (node.type === 'input') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onUpdate: (id: string, data: Partial<InputNodeData>) => handleNodeUpdate(id, data)
+        }
+      };
+    } else if (node.type === 'output') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onUpdate: (id: string, data: Partial<OutputNodeData>) => handleNodeUpdate(id, data)
+        }
+      };
+    } else if (node.type === 'if') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onUpdate: (id: string, data: Partial<IfNodeData>) => handleNodeUpdate(id, data)
+        }
+      };
+    }
+    return node;
+  });
+  
+  const [nodes, setNodes, onNodesChange] = useNodesState(enhancedInitialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const reactFlowInstance = useReactFlow();
   const [showHelp, setShowHelp] = useState(true);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [validation, setValidation] = useState<ValidationResult>({ isValid: true, errors: [] });
+  const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
+  const [savedFlowJson, setSavedFlowJson] = useState<string>("");
   
   useEffect(() => {
     if (reactFlowWrapper.current) {
@@ -485,6 +525,16 @@ const FlowContent = () => {
         
         console.log("Creating new node at position:", position);
         
+        if (type === 'agent') {
+          nodeData.onUpdate = (id: string, data: Partial<AgentNodeData>) => handleNodeUpdate(id, data);
+        } else if (type === 'input') {
+          nodeData.onUpdate = (id: string, data: Partial<InputNodeData>) => handleNodeUpdate(id, data);
+        } else if (type === 'output') {
+          nodeData.onUpdate = (id: string, data: Partial<OutputNodeData>) => handleNodeUpdate(id, data);
+        } else if (type === 'if') {
+          nodeData.onUpdate = (id: string, data: Partial<IfNodeData>) => handleNodeUpdate(id, data);
+        }
+        
         const newNode: Node = {
           id: `${type}-${Date.now()}`,
           type,
@@ -501,7 +551,7 @@ const FlowContent = () => {
         toast.error("Failed to add element to workspace");
       }
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, handleNodeUpdate]
   );
   
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
@@ -530,6 +580,26 @@ const FlowContent = () => {
     console.log("Node dragged:", node);
   }, []);
   
+  const handleNodeUpdate = useCallback((nodeId: string, newData: Partial<any>) => {
+    console.log(`Updating node ${nodeId} with data:`, newData);
+    
+    setNodes(nds => nds.map(node => {
+      if (node.id === nodeId) {
+        const updatedData = {
+          ...node.data,
+          ...newData,
+          onUpdate: node.data.onUpdate
+        };
+        
+        return {
+          ...node,
+          data: updatedData
+        };
+      }
+      return node;
+    }));
+  }, [setNodes]);
+  
   const onSaveFlow = useCallback(() => {
     const validationResult = validateWorkflow(nodes, edges);
     
@@ -540,88 +610,22 @@ const FlowContent = () => {
       return;
     }
     
-    const flow = { nodes, edges };
+    const simplifiedNodes = nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        onUpdate: undefined,
+      }
+    }));
+    
+    const flow = { nodes: simplifiedNodes, edges };
     localStorage.setItem("savedFlow", JSON.stringify(flow));
     
-    toast.success("Workflow saved successfully!", {
-      action: {
-        label: "View JSON",
-        onClick: () => {
-          const formattedJson = JSON.stringify(flow, null, 2);
-          
-          const dialog = document.createElement('dialog');
-          dialog.style.padding = '20px';
-          dialog.style.borderRadius = '8px';
-          dialog.style.maxWidth = '80vw';
-          dialog.style.maxHeight = '80vh';
-          dialog.style.overflow = 'auto';
-          dialog.style.position = 'fixed';
-          dialog.style.top = '50%';
-          dialog.style.left = '50%';
-          dialog.style.transform = 'translate(-50%, -50%)';
-          dialog.style.zIndex = '9999';
-          dialog.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-          
-          const header = document.createElement('div');
-          header.style.display = 'flex';
-          header.style.justifyContent = 'space-between';
-          header.style.alignItems = 'center';
-          header.style.marginBottom = '10px';
-          
-          const title = document.createElement('h3');
-          title.textContent = 'Workflow JSON Data';
-          title.style.margin = '0';
-          
-          const closeButton = document.createElement('button');
-          closeButton.textContent = '✕';
-          closeButton.style.background = 'none';
-          closeButton.style.border = 'none';
-          closeButton.style.fontSize = '20px';
-          closeButton.style.cursor = 'pointer';
-          closeButton.onclick = () => dialog.close();
-          
-          const copyButton = document.createElement('button');
-          copyButton.textContent = 'Copy to Clipboard';
-          copyButton.style.marginTop = '10px';
-          copyButton.style.padding = '8px 16px';
-          copyButton.style.borderRadius = '4px';
-          copyButton.style.backgroundColor = '#3b82f6';
-          copyButton.style.color = 'white';
-          copyButton.style.border = 'none';
-          copyButton.style.cursor = 'pointer';
-          copyButton.onclick = () => {
-            navigator.clipboard.writeText(formattedJson);
-            toast.success("JSON copied to clipboard");
-          };
-          
-          const pre = document.createElement('pre');
-          pre.style.backgroundColor = '#f8f9fa';
-          pre.style.padding = '15px';
-          pre.style.borderRadius = '4px';
-          pre.style.overflow = 'auto';
-          pre.style.maxHeight = '50vh';
-          
-          const code = document.createElement('code');
-          code.textContent = formattedJson;
-          
-          pre.appendChild(code);
-          header.appendChild(title);
-          header.appendChild(closeButton);
-          dialog.appendChild(header);
-          dialog.appendChild(pre);
-          dialog.appendChild(copyButton);
-          
-          document.body.appendChild(dialog);
-          dialog.showModal();
-          
-          dialog.addEventListener('close', () => {
-            document.body.removeChild(dialog);
-          });
-        },
-      },
-      duration: 5000,
-    });
+    const formattedJson = JSON.stringify(flow, null, 2);
+    setSavedFlowJson(formattedJson);
+    setJsonDialogOpen(true);
     
+    toast.success("Workflow saved successfully!");
     console.log("Saved workflow:", flow);
   }, [nodes, edges]);
   
@@ -762,6 +766,44 @@ const FlowContent = () => {
           )}
         </ReactFlow>
       </div>
+      
+      {jsonDialogOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center px-6 py-4 border-b">
+              <h3 className="text-lg font-medium">Workflow JSON Data</h3>
+              <button 
+                onClick={() => setJsonDialogOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto max-h-[50vh]">
+                <code>{savedFlowJson}</code>
+              </pre>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end">
+              <Button 
+                onClick={() => {
+                  navigator.clipboard.writeText(savedFlowJson);
+                  toast.success("JSON copied to clipboard");
+                }}
+                className="mr-2"
+              >
+                Copy to Clipboard
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setJsonDialogOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
