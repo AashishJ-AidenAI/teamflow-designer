@@ -1,6 +1,7 @@
+
 import AgentWorkflowBuilder from "@/components/builder/AgentWorkflowBuilder";
 
-const BuilderPage = () => {
+const FineTuningPage = () => {
   return (
     <div className="h-full w-full" style={{ height: "calc(100vh - 64px)" }}>
       <AgentWorkflowBuilder />
@@ -8,4 +9,4 @@ const BuilderPage = () => {
   );
 };
 
-export default BuilderPage;
+export default FineTuningPage;

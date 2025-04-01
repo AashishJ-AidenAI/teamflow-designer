@@ -444,6 +444,21 @@ const FlowContent = () => {
   const { agents, teams } = useAgents();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   
+  // Initialize node and edge states first, before any functions that use them
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [showHelp, setShowHelp] = useState(true);
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [validation, setValidation] = useState<ValidationResult>({ isValid: true, errors: [] });
+  const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
+  const [savedFlowJson, setSavedFlowJson] = useState<string>("");
+  const [jsonEditMode, setJsonEditMode] = useState(false);
+  const [jsonEditValue, setJsonEditValue] = useState<string>("");
+  
+  const reactFlowInstance = useReactFlow();
+  
+  // Define callback functions after state is initialized
   const handleNodeUpdate = useCallback((nodeId: string, newData: Partial<any>) => {
     console.log(`Updating node ${nodeId} with data:`, newData);
     
@@ -462,56 +477,58 @@ const FlowContent = () => {
       }
       return node;
     }));
-  }, []);
+  }, [setNodes]);
   
-  const enhancedInitialNodes = initialNodes.map(node => {
-    if (node.type === 'agent') {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          onUpdate: (id: string, data: Partial<AgentNodeData>) => handleNodeUpdate(id, data)
-        }
-      };
-    } else if (node.type === 'input') {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          onUpdate: (id: string, data: Partial<InputNodeData>) => handleNodeUpdate(id, data)
-        }
-      };
-    } else if (node.type === 'output') {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          onUpdate: (id: string, data: Partial<OutputNodeData>) => handleNodeUpdate(id, data)
-        }
-      };
-    } else if (node.type === 'if') {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          onUpdate: (id: string, data: Partial<IfNodeData>) => handleNodeUpdate(id, data)
-        }
-      };
-    }
-    return node;
-  });
+  // Add onUpdate handler to initial nodes after handleNodeUpdate is defined
+  const enhanceNodesWithHandlers = useCallback((nodesToEnhance) => {
+    return nodesToEnhance.map(node => {
+      if (node.type === 'agent') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<AgentNodeData>) => handleNodeUpdate(id, data)
+          }
+        };
+      } else if (node.type === 'input') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<InputNodeData>) => handleNodeUpdate(id, data)
+          }
+        };
+      } else if (node.type === 'output') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<OutputNodeData>) => handleNodeUpdate(id, data)
+          }
+        };
+      } else if (node.type === 'if') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            onUpdate: (id: string, data: Partial<IfNodeData>) => handleNodeUpdate(id, data)
+          }
+        };
+      }
+      return node;
+    });
+  }, [handleNodeUpdate]);
   
-  const [nodes, setNodes, onNodesChange] = useNodesState(enhancedInitialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const reactFlowInstance = useReactFlow();
-  const [showHelp, setShowHelp] = useState(true);
-  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
-  const [validation, setValidation] = useState<ValidationResult>({ isValid: true, errors: [] });
-  const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
-  const [savedFlowJson, setSavedFlowJson] = useState<string>("");
-  const [jsonEditMode, setJsonEditMode] = useState(false);
-  const [jsonEditValue, setJsonEditValue] = useState<string>("");
+  // Initialize nodes with handlers
+  useEffect(() => {
+    const enhancedNodes = enhanceNodesWithHandlers(initialNodes);
+    setNodes(enhancedNodes);
+  }, [enhanceNodesWithHandlers, setNodes]);
+  
+  // Initialize edges 
+  useEffect(() => {
+    setEdges(initialEdges);
+  }, [setEdges]);
   
   useEffect(() => {
     if (reactFlowWrapper.current) {
@@ -545,8 +562,8 @@ const FlowContent = () => {
     setValidation(validationResult);
   }, [nodes, edges]);
   
-  const onConnect: OnConnect = useCallback(
-    (connection) => {
+  const onConnect = useCallback(
+    (connection: Connection) => {
       console.log("Creating connection:", connection);
       
       // Check source node type
@@ -625,21 +642,23 @@ const FlowContent = () => {
         
         console.log("Creating new node at position:", position);
         
+        let newNodeData = { ...nodeData };
+        
         if (type === 'agent') {
-          nodeData.onUpdate = (id: string, data: Partial<AgentNodeData>) => handleNodeUpdate(id, data);
+          newNodeData.onUpdate = (id: string, data: Partial<AgentNodeData>) => handleNodeUpdate(id, data);
         } else if (type === 'input') {
-          nodeData.onUpdate = (id: string, data: Partial<InputNodeData>) => handleNodeUpdate(id, data);
+          newNodeData.onUpdate = (id: string, data: Partial<InputNodeData>) => handleNodeUpdate(id, data);
         } else if (type === 'output') {
-          nodeData.onUpdate = (id: string, data: Partial<OutputNodeData>) => handleNodeUpdate(id, data);
+          newNodeData.onUpdate = (id: string, data: Partial<OutputNodeData>) => handleNodeUpdate(id, data);
         } else if (type === 'if') {
-          nodeData.onUpdate = (id: string, data: Partial<IfNodeData>) => handleNodeUpdate(id, data);
+          newNodeData.onUpdate = (id: string, data: Partial<IfNodeData>) => handleNodeUpdate(id, data);
         }
         
         const newNode: Node = {
           id: `${type}-${Date.now()}`,
           type,
           position,
-          data: nodeData,
+          data: newNodeData,
         };
         
         setNodes((nds) => nds.concat(newNode));
