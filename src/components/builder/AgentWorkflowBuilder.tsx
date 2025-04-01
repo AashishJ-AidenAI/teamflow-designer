@@ -390,6 +390,26 @@ const FlowContent = () => {
   const { agents, teams } = useAgents();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   
+  const handleNodeUpdate = useCallback((nodeId: string, newData: Partial<any>) => {
+    console.log(`Updating node ${nodeId} with data:`, newData);
+    
+    setNodes(nds => nds.map(node => {
+      if (node.id === nodeId) {
+        const updatedData = {
+          ...node.data,
+          ...newData,
+          onUpdate: node.data.onUpdate
+        };
+        
+        return {
+          ...node,
+          data: updatedData
+        };
+      }
+      return node;
+    }));
+  }, []);
+  
   const enhancedInitialNodes = initialNodes.map(node => {
     if (node.type === 'agent') {
       return {
@@ -579,26 +599,6 @@ const FlowContent = () => {
   const onNodeDragStop: NodeMouseHandler = useCallback((event, node) => {
     console.log("Node dragged:", node);
   }, []);
-  
-  const handleNodeUpdate = useCallback((nodeId: string, newData: Partial<any>) => {
-    console.log(`Updating node ${nodeId} with data:`, newData);
-    
-    setNodes(nds => nds.map(node => {
-      if (node.id === nodeId) {
-        const updatedData = {
-          ...node.data,
-          ...newData,
-          onUpdate: node.data.onUpdate
-        };
-        
-        return {
-          ...node,
-          data: updatedData
-        };
-      }
-      return node;
-    }));
-  }, [setNodes]);
   
   const onSaveFlow = useCallback(() => {
     const validationResult = validateWorkflow(nodes, edges);
