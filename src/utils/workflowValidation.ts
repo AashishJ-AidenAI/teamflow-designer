@@ -25,6 +25,11 @@ export interface CompositeCondition {
 // Union type for all possible conditions
 export type Condition = SimpleCondition | CompositeCondition;
 
+// Extend the Edge type to include conditionHandle
+export interface CustomEdge extends Edge {
+  conditionHandle?: 'true' | 'false';
+}
+
 // Function to check if a node is reachable from the entry point
 function isNodeReachable(nodeId: string, edges: Edge[], visitedNodes: Set<string>): boolean {
   // If we've already visited this node, return true
@@ -119,7 +124,8 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationResult
       if (!ifNode.data?.condition) {
         errors.push(`If node "${ifNode.data?.label || ifNode.id}" must have a condition defined`);
       } else {
-        validateCondition(ifNode.data.condition);
+        // Explicitly cast to Condition type to fix the TS error
+        validateCondition(ifNode.data.condition as Condition);
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -166,12 +172,7 @@ function isNodeReachableFromSource(
 }
 
 // Validate a condition recursively
-function validateCondition(condition: Condition | string): void {
-  // If condition is a string, it's an error
-  if (typeof condition === 'string') {
-    throw new Error(`Invalid condition format: "${condition}"`);
-  }
-  
+function validateCondition(condition: Condition): void {
   // Check if it's a composite condition (AND/OR)
   if ('type' in condition) {
     if (!condition.conditions || !Array.isArray(condition.conditions)) {
@@ -218,8 +219,11 @@ export function formatWorkflowForExport(nodes: Node[], edges: Edge[]) {
   
   // Clean up edges if needed
   const formattedEdges = edges.map(edge => {
+    // Cast to CustomEdge to access conditionHandle
+    const customEdge = edge as CustomEdge;
+    
     // Remove any internal properties not needed for export
-    const { id, source, target, sourceHandle, targetHandle, conditionHandle, animated, style, markerEnd } = edge;
+    const { id, source, target, sourceHandle, targetHandle, animated, style, markerEnd } = customEdge;
     
     // Only include essential properties
     const formattedEdge: any = {
@@ -231,7 +235,7 @@ export function formatWorkflowForExport(nodes: Node[], edges: Edge[]) {
     // Only include these properties if they exist
     if (sourceHandle) formattedEdge.sourceHandle = sourceHandle;
     if (targetHandle) formattedEdge.targetHandle = targetHandle;
-    if (conditionHandle) formattedEdge.conditionHandle = conditionHandle;
+    if (customEdge.conditionHandle) formattedEdge.conditionHandle = customEdge.conditionHandle;
     
     return formattedEdge;
   });

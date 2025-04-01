@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useRef, useEffect } from "react";
 import {
   ReactFlow,
@@ -31,19 +30,7 @@ import InputNode, { InputNodeData } from "./nodes/InputNode";
 import OutputNode, { OutputNodeData } from "./nodes/OutputNode";
 import IfNode, { IfNodeData, Condition } from "./nodes/IfNode";
 import { useAgents } from "@/context/AgentContext";
-import { validateWorkflow, ValidationResult, formatWorkflowForExport } from "@/utils/workflowValidation";
-
-interface CustomEdge extends Edge {
-  animated?: boolean;
-  style?: {
-    stroke: string;
-    strokeWidth: number;
-  };
-  markerEnd?: {
-    type: MarkerType;
-  };
-  conditionHandle?: 'true' | 'false';
-}
+import { validateWorkflow, ValidationResult, formatWorkflowForExport, CustomEdge } from "@/utils/workflowValidation";
 
 const initialEdges: CustomEdge[] = [
   {
@@ -444,7 +431,6 @@ const FlowContent = () => {
   const { agents, teams } = useAgents();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   
-  // Initialize node and edge states first, before any functions that use them
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showHelp, setShowHelp] = useState(true);
@@ -458,7 +444,6 @@ const FlowContent = () => {
   
   const reactFlowInstance = useReactFlow();
   
-  // Define callback functions after state is initialized
   const handleNodeUpdate = useCallback((nodeId: string, newData: Partial<any>) => {
     console.log(`Updating node ${nodeId} with data:`, newData);
     
@@ -479,7 +464,6 @@ const FlowContent = () => {
     }));
   }, [setNodes]);
   
-  // Add onUpdate handler to initial nodes after handleNodeUpdate is defined
   const enhanceNodesWithHandlers = useCallback((nodesToEnhance) => {
     return nodesToEnhance.map(node => {
       if (node.type === 'agent') {
@@ -519,13 +503,11 @@ const FlowContent = () => {
     });
   }, [handleNodeUpdate]);
   
-  // Initialize nodes with handlers
   useEffect(() => {
     const enhancedNodes = enhanceNodesWithHandlers(initialNodes);
     setNodes(enhancedNodes);
   }, [enhanceNodesWithHandlers, setNodes]);
   
-  // Initialize edges 
   useEffect(() => {
     setEdges(initialEdges);
   }, [setEdges]);
@@ -566,23 +548,19 @@ const FlowContent = () => {
     (connection: Connection) => {
       console.log("Creating connection:", connection);
       
-      // Check source node type
       const sourceNode = nodes.find(node => node.id === connection.source);
       const targetNode = nodes.find(node => node.id === connection.target);
       
-      // Prevent connecting output nodes to anything
       if (sourceNode?.type === 'output') {
         toast.error("Output nodes cannot have outgoing connections");
         return;
       }
       
-      // Prevent connecting anything to input nodes
       if (targetNode?.type === 'input') {
         toast.error("Input nodes cannot have incoming connections");
         return;
       }
       
-      // Create the custom edge with proper styling
       const newEdge: CustomEdge = {
         ...connection,
         id: `e${connection.source}-${connection.target}`,
@@ -593,7 +571,6 @@ const FlowContent = () => {
         }
       };
       
-      // If this is a connection from an if node, add the condition handle info
       if (sourceNode?.type === 'if' && connection.sourceHandle) {
         newEdge.conditionHandle = connection.sourceHandle as 'true' | 'false';
       }
@@ -709,7 +686,6 @@ const FlowContent = () => {
       return;
     }
     
-    // Format the workflow for export using the utility function
     const formattedWorkflow = formatWorkflowForExport(nodes, edges);
     
     localStorage.setItem("savedFlow", JSON.stringify(formattedWorkflow));
@@ -735,7 +711,6 @@ const FlowContent = () => {
     const workflow = savedWorkflowsData[workflowId as keyof typeof savedWorkflowsData];
     
     if (workflow) {
-      // Add the onUpdate callback to each node
       const enhancedNodes = workflow.nodes.map(node => {
         let enhancedNode = { ...node };
         
@@ -764,11 +739,9 @@ const FlowContent = () => {
         return enhancedNode;
       });
       
-      // Process edges to ensure proper format for the editor
       const processedEdges = workflow.edges.map(edge => {
         const newEdge: CustomEdge = { ...edge };
         
-        // If we have a conditionHandle, set sourceHandle for editor compatibility
         if (edge.conditionHandle) {
           newEdge.sourceHandle = edge.conditionHandle;
         }
@@ -796,12 +769,10 @@ const FlowContent = () => {
     event.dataTransfer.effectAllowed = "move";
   }, []);
   
-  // Function to apply JSON edits to the workflow
   const applyJsonEdits = useCallback(() => {
     try {
       const parsedJson = JSON.parse(jsonEditValue);
       
-      // Validate basic structure
       if (!parsedJson.nodes || !Array.isArray(parsedJson.nodes) || 
           !parsedJson.edges || !Array.isArray(parsedJson.edges)) {
         toast.error("Invalid workflow format", {
@@ -810,7 +781,6 @@ const FlowContent = () => {
         return;
       }
       
-      // Add the onUpdate callback to each node
       const enhancedNodes = parsedJson.nodes.map((node: any) => {
         let enhancedNode = { ...node };
         
@@ -844,11 +814,9 @@ const FlowContent = () => {
         return enhancedNode;
       });
       
-      // Process edges to ensure proper format for the editor
       const processedEdges = parsedJson.edges.map((edge: any) => {
         const newEdge: CustomEdge = { ...edge };
         
-        // If we have a conditionHandle, set sourceHandle for editor compatibility
         if (edge.conditionHandle) {
           newEdge.sourceHandle = edge.conditionHandle;
         }
@@ -865,7 +833,6 @@ const FlowContent = () => {
       }, 200);
       
       toast.success("Workflow updated from JSON");
-      
     } catch (error) {
       console.error("Error parsing JSON:", error);
       toast.error("Failed to parse workflow JSON", {
