@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, GitBranch, List, Zap } from "lucide-react";
+import { Users, GitBranch, List, Zap, Edit } from "lucide-react";
 import { ExecutionStrategy } from "@/components/teams/TeamNode";
 import ClientManager from "./ClientManager";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ interface TeamCardProps {
   active: boolean;
   clientAssigned: string[];
   onUpdateClientList?: (teamId: string, clients: string[]) => void;
+  onEdit?: (teamId: string) => void;
   allClients?: { id: string; name: string }[];
 }
 
@@ -23,6 +24,7 @@ interface TeamCardProps {
 interface TeamCardWithTeamProp {
   team: TeamCardProps;
   onUpdateClientList?: (teamId: string, clients: string[]) => void;
+  onEdit?: (teamId: string) => void;
   allClients?: { id: string; name: string }[];
 }
 
@@ -54,6 +56,10 @@ const TeamCard = (props: TeamCardProps | TeamCardWithTeamProp) => {
     ? props.onUpdateClientList 
     : props.onUpdateClientList;
   
+  const onEdit = 'team' in props 
+    ? props.onEdit 
+    : props.onEdit;
+  
   const allClients = 'team' in props 
     ? props.allClients || [] 
     : props.allClients || [];
@@ -70,6 +76,12 @@ const TeamCard = (props: TeamCardProps | TeamCardWithTeamProp) => {
     if (onUpdateClientList) {
       onUpdateClientList(id, clients);
       toast.success(`Updated client list for ${name}`);
+    }
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(id);
     }
   };
 
@@ -120,15 +132,23 @@ const TeamCard = (props: TeamCardProps | TeamCardWithTeamProp) => {
             </div>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex gap-2">
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full gap-1"
+            className="flex-1 gap-1"
             onClick={() => setIsClientModalOpen(true)}
           >
             <Users className="h-3.5 w-3.5" />
             Manage Clients
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-none gap-1"
+            onClick={handleEdit}
+          >
+            <Edit className="h-3.5 w-3.5" />
           </Button>
         </CardFooter>
       </Card>

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
 // Agent types
@@ -21,12 +20,15 @@ export interface Agent {
   responseTime: number;
   usageCount: number;
   knowledgebaseId?: string;
+  assignedClients?: string[];
 }
+
+export type ExecutionStrategy = "parallel" | "selection" | "sequential";
 
 export interface Team {
   id: string;
   name: string;
-  strategy: "parallel" | "selection" | "sequential";
+  strategy: ExecutionStrategy;
   agents: string[];
   active: boolean;
   clientAssigned: string[];
@@ -55,6 +57,7 @@ const predefinedAgents: Agent[] = [
     active: true,
     responseTime: 220,
     usageCount: 1280,
+    assignedClients: ["Client A", "Client B"]
   },
   {
     id: "a2",
@@ -65,6 +68,7 @@ const predefinedAgents: Agent[] = [
     active: true,
     responseTime: 300,
     usageCount: 950,
+    assignedClients: ["Client A"]
   },
   {
     id: "a3",

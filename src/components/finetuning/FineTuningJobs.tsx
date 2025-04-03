@@ -22,6 +22,8 @@ import {
 import { TrainingJob } from "@/types/finetuning";
 import { toast } from "sonner";
 
+type JobStatus = "completed" | "queued" | "running" | "failed" | "canceled";
+
 interface FineTuningJobsProps {
   onDeploySuccess?: () => void;
 }
@@ -283,16 +285,16 @@ const FineTuningJobs = ({ onDeploySuccess }: FineTuningJobsProps) => {
   
   const createNewJob = () => {
     const newJob = {
-      id: `job-${jobs.length + 1}`,
-      modelId: `model-${Math.floor(Math.random() * 3) + 1}`,
-      datasetId: `dataset-${Math.floor(Math.random() * 3) + 1}`,
-      status: "queued",
+      id: `job-${Date.now()}`,
+      modelId: selectedModelId,
+      datasetId: selectedDatasetId,
+      status: "queued" as JobStatus,
       progress: 0,
       createdAt: new Date(),
       parameters: {
-        learningRate: 0.0001,
-        epochs: Math.floor(Math.random() * 3) + 2,
-        batchSize: [8, 16, 32][Math.floor(Math.random() * 3)],
+        learningRate: 0.001,
+        epochs: 10, 
+        batchSize: 32,
         validationSplit: 0.2
       }
     };
