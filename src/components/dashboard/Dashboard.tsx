@@ -28,7 +28,6 @@ import TeamCard from "./TeamCard";
 import WorkflowCard from "./WorkflowCard";
 import Metrics from "./Metrics";
 import NewTeamModal from "./NewTeamModal";
-import EditTeamModal from "./EditTeamModal";
 import EditAgentModal from "./EditAgentModal";
 import NewWorkflowModal from "./NewWorkflowModal";
 import ClientManager from "./ClientManager";
@@ -37,16 +36,14 @@ import { toast } from "sonner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { agents, teams, updateAgent, addTeam, updateTeam, updateClientList } = useAgents();
+  const { agents, teams, updateAgent, addTeam, updateClientList } = useAgents();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("agents");
   const [isNewTeamModalOpen, setIsNewTeamModalOpen] = useState(false);
-  const [isEditTeamModalOpen, setIsEditTeamModalOpen] = useState(false);
   const [isNewWorkflowModalOpen, setIsNewWorkflowModalOpen] = useState(false);
   const [isClientManagerOpen, setIsClientManagerOpen] = useState(false);
   const [selectedAgentForClients, setSelectedAgentForClients] = useState<string | null>(null);
   const [editingAgent, setEditingAgent] = useState<string | null>(null);
-  const [editingTeam, setEditingTeam] = useState<string | null>(null);
   
   // Client data
   const clientsData = [
@@ -110,13 +107,6 @@ const Dashboard = () => {
     toast.success("Team created successfully");
   };
   
-  const handleUpdateTeam = (updatedTeam: any) => {
-    updateTeam(updatedTeam);
-    setEditingTeam(null);
-    setIsEditTeamModalOpen(false);
-    toast.success("Team updated successfully");
-  };
-  
   const handleCreateWorkflow = (newWorkflow: any) => {
     // Instead of just showing a toast, redirect to builder
     setIsNewWorkflowModalOpen(false);
@@ -153,11 +143,6 @@ const Dashboard = () => {
     }
     setIsClientManagerOpen(false);
     setSelectedAgentForClients(null);
-  };
-  
-  const handleEditTeam = (teamId: string) => {
-    setEditingTeam(teamId);
-    setIsEditTeamModalOpen(true);
   };
   
   const filteredAgents = agents.filter(agent => 
@@ -295,7 +280,6 @@ const Dashboard = () => {
                 active={team.active}
                 clientAssigned={team.clientAssigned}
                 onUpdateClientList={updateClientList}
-                onEdit={handleEditTeam}
                 allClients={clientsData}
               />
             ))}
@@ -333,14 +317,6 @@ const Dashboard = () => {
         isOpen={isNewTeamModalOpen}
         onClose={() => setIsNewTeamModalOpen(false)}
         onSave={handleCreateTeam}
-        allAgents={agents}
-      />
-
-      <EditTeamModal
-        isOpen={isEditTeamModalOpen}
-        onClose={() => setIsEditTeamModalOpen(false)}
-        onSave={handleUpdateTeam}
-        team={teams.find(t => t.id === editingTeam) || null}
         allAgents={agents}
       />
 

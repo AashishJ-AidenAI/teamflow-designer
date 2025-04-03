@@ -31,7 +31,6 @@ import OutputNode, { OutputNodeData } from "./nodes/OutputNode";
 import IfNode, { IfNodeData, Condition } from "./nodes/IfNode";
 import { useAgents } from "@/context/AgentContext";
 import { validateWorkflow, ValidationResult, formatWorkflowForExport, CustomEdge } from "@/utils/workflowValidation";
-import { useSearchParams } from "react-router-dom";
 
 const initialEdges: CustomEdge[] = [
   {
@@ -101,12 +100,336 @@ const nodeTypes: NodeTypes = {
   if: IfNode
 };
 
+// Example workflow with complex conditional logic
+const complexWorkflowExample = {
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "input",
+      "position": { x: 250, y: 50 },
+      "data": {
+        "label": "Lead Information",
+        "format": "JSON",
+        "description": "Sales lead data input"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": { x: 250, y: 200 },
+      "data": {
+        "label": "Pre-screening Agent",
+        "llm": "GPT-4",
+        "tools": ["Lead Scoring", "Contact Validation"]
+      }
+    },
+    {
+      "id": "if-1",
+      "type": "if",
+      "position": { x: 250, y: 350 },
+      "data": {
+        "label": "Qualified Lead Check (AND Condition)",
+        "condition": {
+          "type": "AND",
+          "conditions": [
+            {
+              "operator": ">",
+              "left": "lead_score",
+              "right": 70
+            },
+            {
+              "operator": "in",
+              "left": "region",
+              "right": ["US", "EU"]
+            }
+          ]
+        },
+        "description": "Checks if lead meets score and region criteria"
+      }
+    },
+    {
+      "id": "agent-2",
+      "type": "agent",
+      "position": { x: 100, y: 500 },
+      "data": {
+        "label": "Lead Nurturing Agent",
+        "llm": "Claude-3",
+        "tools": ["Email Campaigns", "CRM Update"]
+      }
+    },
+    {
+      "id": "agent-3",
+      "type": "agent",
+      "position": { x: 400, y: 500 },
+      "data": {
+        "label": "Sales Agent",
+        "llm": "GPT-4",
+        "tools": ["Sales Pitch Generator", "Meeting Scheduler"]
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "position": { x: 100, y: 650 },
+      "data": {
+        "label": "Nurturing Queue",
+        "format": "JSON",
+        "description": "Leads for nurturing"
+      }
+    },
+    {
+      "id": "output-2",
+      "type": "output",
+      "position": { x: 400, y: 650 },
+      "data": {
+        "label": "Sales Queue",
+        "format": "JSON",
+        "description": "Qualified leads for sales"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1-2",
+      "source": "input-1",
+      "target": "agent-1"
+    },
+    {
+      "id": "e2-3",
+      "source": "agent-1",
+      "target": "if-1"
+    },
+    {
+      "id": "e3-4",
+      "source": "if-1",
+      "target": "agent-2",
+      "conditionHandle": "false"
+    },
+    {
+      "id": "e3-5",
+      "source": "if-1",
+      "target": "agent-3",
+      "conditionHandle": "true"
+    },
+    {
+      "id": "e4-6",
+      "source": "agent-2",
+      "target": "output-1"
+    },
+    {
+      "id": "e5-7",
+      "source": "agent-3",
+      "target": "output-2"
+    }
+  ]
+};
+
+// More example workflows with the updated structured format
+const savedWorkflowsData = {
+  "wf1": {
+    nodes: [
+      {
+        id: 'input-1',
+        type: 'input',
+        position: { x: 250, y: 50 },
+        data: {
+          label: 'Customer Request',
+          format: 'JSON',
+          description: 'Customer support request'
+        },
+      },
+      {
+        id: 'agent-1',
+        type: 'agent',
+        position: { x: 250, y: 200 },
+        data: {
+          label: 'Customer Support Agent',
+          llm: 'GPT-4',
+          tools: ['Knowledge Base', 'Email Templates']
+        },
+      },
+      {
+        id: 'agent-2',
+        type: 'agent',
+        position: { x: 250, y: 350 },
+        data: {
+          label: 'Document Processing Agent',
+          llm: 'Claude-3',
+          tools: ['Document Analysis', 'Data Extraction']
+        },
+      },
+      {
+        id: 'output-1',
+        type: 'output',
+        position: { x: 250, y: 500 },
+        data: {
+          label: 'Support Resolution',
+          format: 'JSON',
+          description: 'Customer support resolution'
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'e1-2',
+        source: 'input-1',
+        target: 'agent-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+      },
+      {
+        id: 'e2-3',
+        source: 'agent-1',
+        target: 'agent-2',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+      },
+      {
+        id: 'e3-4',
+        source: 'agent-2',
+        target: 'output-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+      },
+    ]
+  },
+  "wf2": complexWorkflowExample,
+  "wf3": {
+    nodes: [
+      {
+        id: 'input-1',
+        type: 'input',
+        position: { x: 250, y: 50 },
+        data: {
+          label: 'Document Input',
+          format: 'PDF',
+          description: 'Document for processing'
+        },
+      },
+      {
+        id: 'agent-1',
+        type: 'agent',
+        position: { x: 250, y: 200 },
+        data: {
+          label: 'Document Processing Agent',
+          llm: 'GPT-4',
+          tools: ['OCR', 'Text Extraction']
+        },
+      },
+      {
+        id: 'if-1',
+        type: 'if',
+        position: { x: 250, y: 350 },
+        data: {
+          label: 'Format Check',
+          condition: {
+            operator: "==",
+            left: "document_type",
+            right: "invoice"
+          },
+          description: 'Check if document is an invoice'
+        },
+      },
+      {
+        id: 'agent-2',
+        type: 'agent',
+        position: { x: 100, y: 500 },
+        data: {
+          label: 'General Document Agent',
+          llm: 'Claude-3',
+          tools: ['Data Validation', 'Error Detection']
+        },
+      },
+      {
+        id: 'agent-3',
+        type: 'agent',
+        position: { x: 400, y: 500 },
+        data: {
+          label: 'Invoice Processing Agent',
+          llm: 'GPT-4',
+          tools: ['Invoice Extraction', 'Accounting Integration']
+        },
+      },
+      {
+        id: 'output-1',
+        type: 'output',
+        position: { x: 250, y: 650 },
+        data: {
+          label: 'Structured Data',
+          format: 'JSON',
+          description: 'Validated structured data'
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'e1-2',
+        source: 'input-1',
+        target: 'agent-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e2-3',
+        source: 'agent-1',
+        target: 'if-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e3-4',
+        source: 'if-1',
+        target: 'agent-2',
+        sourceHandle: 'false',
+        conditionHandle: 'false',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e3-5',
+        source: 'if-1',
+        target: 'agent-3',
+        sourceHandle: 'true',
+        conditionHandle: 'true',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e4-6',
+        source: 'agent-2',
+        target: 'output-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      {
+        id: 'e5-7',
+        source: 'agent-3',
+        target: 'output-1',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+    ]
+  }
+};
+
 const FlowContent = () => {
   const { agents, teams } = useAgents();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [searchParams] = useSearchParams();
-  const workflowId = searchParams.get("workflow");
-  const isEditMode = !!workflowId;
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -353,32 +676,6 @@ const FlowContent = () => {
     console.log("Node dragged:", node);
   }, []);
   
-  const createNewWorkflow = useCallback(async (workflow: any) => {
-    try {
-      console.log("Creating new workflow:", workflow);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("New workflow created successfully!");
-      return true;
-    } catch (error) {
-      console.error("Error creating workflow:", error);
-      toast.error("Failed to create workflow");
-      return false;
-    }
-  }, []);
-
-  const updateWorkflow = useCallback(async (workflowId: string, workflow: any) => {
-    try {
-      console.log(`Updating workflow ${workflowId}:`, workflow);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("Workflow updated successfully!");
-      return true;
-    } catch (error) {
-      console.error("Error updating workflow:", error);
-      toast.error("Failed to update workflow");
-      return false;
-    }
-  }, []);
-
   const onSaveFlow = useCallback(() => {
     const validationResult = validateWorkflow(nodes, edges);
     
@@ -396,23 +693,12 @@ const FlowContent = () => {
     const formattedJson = JSON.stringify(formattedWorkflow, null, 2);
     setSavedFlowJson(formattedJson);
     setJsonEditValue(formattedJson);
+    setJsonDialogOpen(true);
+    setJsonEditMode(false);
     
-    if (isEditMode && workflowId) {
-      updateWorkflow(workflowId, formattedWorkflow).then(success => {
-        if (success) {
-          setJsonDialogOpen(true);
-          setJsonEditMode(false);
-        }
-      });
-    } else {
-      createNewWorkflow(formattedWorkflow).then(success => {
-        if (success) {
-          setJsonDialogOpen(true);
-          setJsonEditMode(false);
-        }
-      });
-    }
-  }, [nodes, edges, isEditMode, workflowId, createNewWorkflow, updateWorkflow]);
+    toast.success("Workflow saved successfully!");
+    console.log("Saved workflow:", formattedWorkflow);
+  }, [nodes, edges]);
   
   const onDeleteSelected = useCallback(() => {
     setNodes((nds) => nds.filter((node) => !node.selected));
@@ -572,9 +858,7 @@ const FlowContent = () => {
         {showHelp && nodes.length <= 3 && !selectedWorkflowId && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-lg z-10 text-center max-w-md">
             <p className="text-sm text-muted-foreground mb-2">
-              {isEditMode ? 
-                "Editing existing workflow. Make your changes and click Save to update." : 
-                "Drag components from the left panel and drop them here to build your workflow."}
+              Drag components from the left panel and drop them here to build your workflow.
             </p>
             <p className="text-xs text-muted-foreground">
               Start with Input node → Add Agents or Teams → End with Output node.
@@ -640,7 +924,7 @@ const FlowContent = () => {
               disabled={!validation.isValid}
             >
               <Save className="h-4 w-4" />
-              {isEditMode ? "Update Workflow" : "Save Workflow"}
+              Save Workflow
             </Button>
             <Button
               size="sm"
