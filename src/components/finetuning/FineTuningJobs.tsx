@@ -282,11 +282,11 @@ const FineTuningJobs = ({ onDeploySuccess }: FineTuningJobsProps) => {
   };
   
   const createNewJob = () => {
-    const newJob = {
+    const newJob: TrainingJob = {
       id: `job-${jobs.length + 1}`,
       modelId: `model-${Math.floor(Math.random() * 3) + 1}`,
       datasetId: `dataset-${Math.floor(Math.random() * 3) + 1}`,
-      status: "queued",
+      status: "queued" as "queued",
       progress: 0,
       createdAt: new Date(),
       parameters: {

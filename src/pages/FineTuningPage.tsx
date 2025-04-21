@@ -90,7 +90,10 @@ const FineTuningPage = () => {
 
             <TabsContent value="upload" className="mt-0 p-0">
               {selectedModel && (
-                <FineTuningUpload model={selectedModel} onComplete={() => setSelectedTab("jobs")} />
+                <FineTuningUpload 
+                  selectedModel={selectedModel} 
+                  onComplete={() => setSelectedTab("jobs")} 
+                />
               )}
             </TabsContent>
 
