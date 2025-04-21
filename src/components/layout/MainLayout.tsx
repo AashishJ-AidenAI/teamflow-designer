@@ -32,6 +32,11 @@ const MainLayout = () => {
     document.documentElement.classList.toggle('dark');
   };
 
+  // Helper function to determine if a route is active
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       {/* Sidebar */}
@@ -71,7 +76,7 @@ const MainLayout = () => {
           
           <NavLink 
             to="/finetuning" 
-            className={({ isActive }) => cn("nav-link flex items-center gap-2", isActive && "nav-link-active")}
+            className={({ isActive }) => cn("nav-link flex items-center gap-2", isActive && "nav-link-active bg-primary/10")}
           >
             <Cpu className="h-4 w-4" />
             <span>Fine-Tuning</span>
@@ -115,8 +120,8 @@ const MainLayout = () => {
       </aside>
       
       {/* Main content */}
-      <main className="flex-1 overflow-hidden flex flex-col">
-        <header className="h-16 border-b border-border flex items-center justify-between px-6">
+      <main className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-background to-background/95">
+        <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-background/50 backdrop-blur-sm">
           <h2 className="text-xl font-medium">
             {location.pathname === "/dashboard" && "Dashboard"}
             {location.pathname === "/builder" && "Agent Workflow Builder"}
